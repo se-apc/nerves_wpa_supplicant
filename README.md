@@ -115,7 +115,7 @@ register a callback module with `use Nerves.WpaSupplicant`. or by passing `mod: 
 following example shows how to set up a callback module for control events:
 
     iex> defmodule NetworkEvents do
-    ...>  use Nerves,WpaSupplicant
+    ...>  use Nerves.WpaSupplicant
     ...>  def control_interface_event(event, data, state) do
     ...>    # Do Work
     ...>    {:noreply, state}
