@@ -1,4 +1,4 @@
-# NervesWpaSupplicant
+# Nerves.WpaSupplicant
 
 This package enables Elixir applications to interact with the local WPA
 supplicant. The WPA supplicant handles various Wi-Fi operations like scanning
