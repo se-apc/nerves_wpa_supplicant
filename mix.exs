@@ -1,27 +1,21 @@
-defmodule Mix.Tasks.Compile.WpaSupplicant do
-  @shortdoc "Compiles the wpa_ex port binary"
-  def run(_) do
-    0=Mix.Shell.IO.cmd("make priv/wpa_ex")
-  end
-end
-
-defmodule WpaSupplicant.Mixfile do
+defmodule NervesWpaSupplicant.Mixfile do
   use Mix.Project
 
   def project do
-    [app: :wpa_supplicant,
+    [app: :nerves_wpa_supplicant,
      version: "0.1.0",
-     elixir: "~> 1.0.0-rc1",
-     compilers: [:WpaSupplicant, :elixir, :app],
-     deps: deps,
-     package: package,
-     description: description
-    ]
+     elixir: "~> 1.2",
+     build_embedded: Mix.env == :prod,
+     start_permanent: Mix.env == :prod,
+     compilers: Mix.compilers ++ [:WpaSupplicant],
+     deps: deps]
   end
 
   # Configuration for the OTP application
+  #
+  # Type "mix help compile.app" for more information
   def application do
-    [applications: [:logger]]
+    [applications: []]
   end
 
   defp description do
@@ -35,9 +29,9 @@ defmodule WpaSupplicant.Mixfile do
 
   defp package do
     %{files: ["lib", "src/*.[ch]", "src/wpa_ctrl/*.[ch]", "test", "mix.exs", "README.md", "LICENSE", "Makefile"],
-      contributors: ["Frank Hunleth"],
+      contributors: ["Frank Hunleth", "Justin Schneck"],
       licenses: ["Apache-2.0", "BSD-3c"],
-      links: %{"GitHub" => "https://github.com/fhunleth/wpa_supplicant.ex"}}
+      links: %{"GitHub" => "https://github.com/nerves-project/nerves_wpa_supplicant"}}
   end
 
   defp deps do
