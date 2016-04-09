@@ -1,3 +1,11 @@
+defmodule Mix.Tasks.Compile.WpaSupplicant do
+  @shortdoc "Compiles the wpa_ex port binary"
+  def run(_) do
+    0=Mix.Shell.IO.cmd("make priv/wpa_ex")
+    Mix.Project.build_structure
+  end
+end
+
 defmodule NervesWpaSupplicant.Mixfile do
   use Mix.Project
 
