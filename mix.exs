@@ -16,7 +16,11 @@ defmodule NervesWpaSupplicant.Mixfile do
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
      compilers: Mix.compilers ++ [:WpaSupplicant],
-     deps: deps]
+     deps: deps,
+      docs: [extras: ["README.md"]],
+     package: package,
+     description: description
+    ]
   end
 
   # Configuration for the OTP application
@@ -43,6 +47,10 @@ defmodule NervesWpaSupplicant.Mixfile do
   end
 
   defp deps do
-    []
+    [
+      {:earmark, "~> 0.1", only: :dev},
+      {:ex_doc, "~> 0.11", only: :dev},
+      {:credo, "~> 0.3", only: [:dev, :test]}
+    ]
   end
 end

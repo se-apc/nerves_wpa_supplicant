@@ -1,3 +1,17 @@
+# Copyright 2014 LKC Technologies, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 defmodule Nerves.WpaSupplicant.Messages do
 
   def encode(cmd) when is_atom(cmd) do
@@ -45,57 +59,42 @@ defmodule Nerves.WpaSupplicant.Messages do
     to_string(arg)
   end
 
-  def decode_event(event) do
-    event
-    |> decode
-    |> normalize
-  end
-
-  def decode(<< "CTRL-REQ-", rest::binary >>) do
+  @doc """
+  Decode notifications from the wpa_supplicant
+  """
+  def decode_notif(<< "CTRL-REQ-", rest::binary >>) do
     [field, net_id, text] = String.split(rest, "-", parts: 3, trim: true)
-    {"CTRL-REQ-" <> field, String.to_integer(net_id), text}
+    {String.to_atom("CTRL-REQ-" <> field), String.to_integer(net_id), text}
   end
-  def decode(<< "CTRL-EVENT-BSS-ADDED", rest::binary >>) do
+  def decode_notif(<< "CTRL-EVENT-BSS-ADDED", rest::binary >>) do
     [entry_id, bssid] = String.split(rest, " ", trim: true)
-    {"CTRL-EVENT-BSS-ADDED", String.to_integer(entry_id), bssid}
+    {:"CTRL-EVENT-BSS-ADDED", String.to_integer(entry_id), bssid}
   end
-  def decode(<< "CTRL-EVENT-BSS-REMOVED", rest::binary >>) do
+  def decode_notif(<< "CTRL-EVENT-BSS-REMOVED", rest::binary >>) do
     [entry_id, bssid] = String.split(rest, " ", trim: true)
-    {"CTRL-EVENT-BSS-REMOVED", String.to_integer(entry_id), bssid}
+    {:"CTRL-EVENT-BSS-REMOVED", String.to_integer(entry_id), bssid}
   end
-  def decode(<< "CTRL-EVENT-CONNECTED", _rest::binary >>) do
-    "CTRL-EVENT-CONNECTED"
+  def decode_notif(<< "CTRL-EVENT-CONNECTED", _rest::binary >>) do
+    :"CTRL-EVENT-CONNECTED"
   end
-  def decode(<< "CTRL-EVENT-DISCONNECTED", _rest::binary >>) do
-    {"CTRL-EVENT-DISCONNECTED", nil}
+  def decode_notif(<< "CTRL-EVENT-DISCONNECTED", _rest::binary >>) do
+    :"CTRL-EVENT-DISCONNECTED"
   end
-  def decode(<< "CTRL-EVENT-", _type::binary>> = event) do
-    event |> String.rstrip
+  def decode_notif(<< "CTRL-EVENT-", _type::binary>> = event) do
+    event |> String.rstrip |> String.to_atom
   end
-  def decode(<< "WPS-", _type::binary>> = event) do
-    event |> String.rstrip
+  def decode_notif(<< "WPS-", _type::binary>> = event) do
+    event |> String.rstrip |> String.to_atom
   end
-  def decode(<< "AP-STA-CONNECTED ", mac::binary>>) do
-    {"AP-STA-CONNECTED", String.rstrip(mac)}
+  def decode_notif(<< "AP-STA-CONNECTED ", mac::binary>>) do
+    {:"AP-STA-CONNECTED", String.rstrip(mac)}
   end
-  def decode(<< "AP-STA-DISCONNECTED ", mac::binary>>) do
-    {"AP-STA-DISCONNECTED", String.rstrip(mac)}
+  def decode_notif(<< "AP-STA-DISCONNECTED ", mac::binary>>) do
+    {:"AP-STA-DISCONNECTED", String.rstrip(mac)}
   end
-  def decode(string) do
-    {"INFO", String.rstrip(string)}
+  def decode_notif(string) do
+    {:INFO, String.rstrip(string)}
   end
-
-  def normalize({atom, data}) when is_atom(atom) do
-    normalize({to_string(atom), data})
-  end
-  def normalize({str, data}) do
-    event = str
-    |> String.downcase
-    |> String.replace("-","_")
-    |> String.to_atom
-    {event, data}
-  end
-  def normalize(atom), do: normalize({atom, nil})
 
   @doc """
   Decode responses from the wpa_supplicant
@@ -106,7 +105,6 @@ defmodule Nerves.WpaSupplicant.Messages do
   def decode_resp(req, resp) do
     # Strip the response of whitespace before trying to parse it.
     tresp(req, String.strip(resp))
-    |> normalize
   end
 
   defp tresp(:PING, "PONG"), do: :PONG

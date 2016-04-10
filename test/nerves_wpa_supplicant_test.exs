@@ -7,7 +7,7 @@ defmodule NervesWpaSupplicantTest do
   defmodule Test do
     use Nerves.WpaSupplicant
 
-    def control_interface_event(event, data, %{opts: opts} = s) do
+    def control_interface_event(event, _data, %{opts: opts} = s) do
       send opts[:cb], {event}
       {:noreply, s}
     end
@@ -15,7 +15,7 @@ defmodule NervesWpaSupplicantTest do
 
   test "Ping" do
     {:ok, pid} = Nerves.WpaSupplicant.start_link
-    assert {:pong, _} = Nerves.WpaSupplicant.request(pid, :PING)
+    assert :PONG = Nerves.WpaSupplicant.request(pid, :PING)
   end
 
 end
