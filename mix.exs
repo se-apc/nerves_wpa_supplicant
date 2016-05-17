@@ -1,7 +1,8 @@
 defmodule Mix.Tasks.Compile.WpaSupplicant do
   @shortdoc "Compiles the wpa_ex port binary"
   def run(_) do
-    0=Mix.Shell.IO.cmd("make priv/wpa_ex")
+    {result, _error_code} = System.cmd("make", ["priv/wpa_ex"], stderr_to_stdout: true)
+    IO.binwrite result
     Mix.Project.build_structure
   end
 end
