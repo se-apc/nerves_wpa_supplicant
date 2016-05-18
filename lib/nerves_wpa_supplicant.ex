@@ -1,3 +1,4 @@
+# Copyright 2016 Frank Hunleth
 # Copyright 2014 LKC Technologies, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,16 +13,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule WpaSupplicant do
+defmodule Nerves.WpaSupplicant do
   use GenServer
   require Logger
+
+  alias Nerves.WpaSupplicant.Messages
 
   defstruct port: nil,
             manager: nil,
             requests: []
 
   @doc """
-  Start and link a WpaSupplicant process that uses the specified
+  Start and link a Nerves.WpaSupplicant process that uses the specified
   control socket. A GenEvent will be spawned for managing wpa_supplicant
   events. Call event_manager/1 to get the GenEvent pid.
   """
@@ -31,7 +34,7 @@ defmodule WpaSupplicant do
   end
 
   @doc """
-  Start and link a WpaSupplicant that uses the specified control
+  Start and link a Nerves.WpaSupplicant that uses the specified control
   socket and GenEvent event manager.
   """
   def start_link(control_socket_path, event_manager) do
@@ -39,7 +42,7 @@ defmodule WpaSupplicant do
   end
 
   @doc """
-  Stop the WpaSupplicant control interface
+  Stop the Nerves.WpaSupplicant control interface
   """
   def stop(pid) do
     GenServer.stop(pid)
@@ -48,9 +51,9 @@ defmodule WpaSupplicant do
   @doc """
   Send a request to the wpa_supplicant.
 
-  ## Examples
+  ## Example
 
-      iex> WpaSupplicant.request(pid, :PING)
+      iex> Nerves.WpaSupplicant.request(pid, :PING)
       :PONG
   """
   def request(pid, command) do
@@ -77,11 +80,11 @@ defmodule WpaSupplicant do
   Tell the wpa_supplicant to connect to the specified network. Invoke
   like this:
 
-      iex> WpaSupplicant.set_network(pid, ssid: "MyNetworkSsid", key_mgmt: :WPA_PSK, psk: "secret")
+      iex> Nerves.WpaSupplicant.set_network(pid, ssid: "MyNetworkSsid", key_mgmt: :WPA_PSK, psk: "secret")
 
   or like this:
 
-      iex> WpaSupplicant.set_network(pid, %{ssid: "MyNetworkSsid", key_mgmt: :WPA_PSK, psk: "secret"})
+      iex> Nerves.WpaSupplicant.set_network(pid, %{ssid: "MyNetworkSsid", key_mgmt: :WPA_PSK, psk: "secret"})
 
   Many options are supported, but it is likely that `ssid` and `psk` are
   the most useful. The full list can be found in the wpa_supplicant
@@ -151,18 +154,18 @@ defmodule WpaSupplicant do
   end
 
   def init({control_socket_path, event_manager}) do
-    executable = :code.priv_dir(:wpa_supplicant) ++ '/wpa_ex'
+    executable = :code.priv_dir(:nerves_wpa_supplicant) ++ '/wpa_ex'
     port = Port.open({:spawn_executable, executable},
                      [{:args, [control_socket_path]},
                       {:packet, 2},
                       :binary,
                       :exit_status])
-    { :ok, %WpaSupplicant{port: port, manager: event_manager} }
+    { :ok, %Nerves.WpaSupplicant{port: port, manager: event_manager} }
   end
 
   def handle_call({:request, command}, from, state) do
-    payload = WpaSupplicant.Encode.encode(command)
-    Logger.info("WpaSupplicant: sending '#{payload}'")
+    payload = Messages.encode(command)
+    Logger.info("NervesWpaSupplicant: sending '#{payload}'")
     send state.port, {self, {:command, payload}}
     state = %{state | :requests => state.requests ++ [{from, command}]}
     {:noreply, state}
@@ -179,15 +182,15 @@ defmodule WpaSupplicant do
   end
 
   defp handle_wpa(<< "<", _priority::utf8, ">", notification::binary>>, state) do
-    decoded_notif = WpaSupplicant.Decode.notif(notification)
-    GenEvent.notify(state.manager, {:wpa_supplicant, self, decoded_notif})
+    decoded_notif = Messages.decode_event(notification)
+    GenEvent.notify(state.manager, {:nerves_wpa_supplicant, self, decoded_notif})
     {:noreply, state}
   end
   defp handle_wpa(response, state) do
     [{client, command} | next_ones] = state.requests
     state = %{state | :requests => next_ones}
 
-    decoded_response = WpaSupplicant.Decode.resp(command, response)
+    decoded_response = Messages.decode_resp(command, response)
     GenServer.reply client, decoded_response
     {:noreply, state}
   end

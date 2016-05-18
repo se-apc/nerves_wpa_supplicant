@@ -7,11 +7,11 @@ defmodule Mix.Tasks.Compile.WpaSupplicant do
   end
 end
 
-defmodule WpaSupplicant.Mixfile do
+defmodule NervesWpaSupplicant.Mixfile do
   use Mix.Project
 
   def project do
-    [app: :wpa_supplicant,
+    [app: :nerves_wpa_supplicant,
      version: "0.2.0",
      elixir: "~> 1.2",
      build_embedded: Mix.env == :prod,
@@ -42,9 +42,9 @@ defmodule WpaSupplicant.Mixfile do
 
   defp package do
     %{files: ["lib", "src/*.[ch]", "src/wpa_ctrl/*.[ch]", "test", "mix.exs", "README.md", "LICENSE", "Makefile"],
-      maintainers: ["Frank Hunleth"],
+      contributors: ["Frank Hunleth", "Justin Schneck"],
       licenses: ["Apache-2.0", "BSD-3c"],
-      links: %{"GitHub" => "https://github.com/fhunleth/wpa_supplicant.ex"}}
+      links: %{"GitHub" => "https://github.com/nerves-project/nerves_wpa_supplicant"}}
   end
 
   defp deps do

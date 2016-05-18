@@ -12,41 +12,87 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule WpaSupplicant.Decode do
+defmodule Nerves.WpaSupplicant.Messages do
+
+  def encode(cmd) when is_atom(cmd) do
+    to_string(cmd)
+  end
+  def encode({:"CTRL-RSP-IDENTITY", network_id, string}) do
+    "CTRL-RSP-IDENTITY-#{network_id}-#{string}"
+  end
+  def encode({:"CTRL-RSP-PASSWORD", network_id, string}) do
+    "CTRL-RSP-PASSWORD-#{network_id}-#{string}"
+  end
+  def encode({:"CTRL-RSP-NEW_PASSWORD", network_id, string}) do
+    "CTRL-RSP-NEW_PASSWORD-#{network_id}-#{string}"
+  end
+  def encode({:"CTRL-RSP-PIN", network_id, string}) do
+    "CTRL-RSP-PIN-#{network_id}-#{string}"
+  end
+  def encode({:"CTRL-RSP-OTP", network_id, string}) do
+    "CTRL-RSP-OTP-#{network_id}-#{string}"
+  end
+  def encode({:"CTRL-RSP-PASSPHRASE", network_id, string}) do
+    "CTRL-RSP-PASSPHRASE-#{network_id}-#{string}"
+  end
+  def encode({cmd, arg}) when is_atom(cmd) do
+    to_string(cmd) <> " " <> encode_arg(arg)
+  end
+  def encode({cmd, arg, arg2}) when is_atom(cmd) do
+    to_string(cmd) <> " " <> encode_arg(arg) <> " " <> encode_arg(arg2)
+  end
+  def encode({cmd, arg, arg2, arg3}) when is_atom(cmd) do
+    to_string(cmd) <> " " <> encode_arg(arg) <> " " <> encode_arg(arg2) <> " " <> encode_arg(arg3)
+  end
+
+  defp encode_arg(arg) when is_binary(arg) do
+    if String.length(arg) == 17 &&
+      Regex.match?(~r/[\da-fA-F][\da-fA-F]:[\da-fA-F][\da-fA-F]:[\da-fA-F][\da-fA-F]:[\da-fA-F][\da-fA-F]:[\da-fA-F][\da-fA-F]:[\da-fA-F][\da-fA-F]/, arg) do
+      # This is a MAC address
+      arg
+    else
+      # This is a string
+      "\"" <> arg <> "\""
+    end
+  end
+  defp encode_arg(arg) do
+    to_string(arg)
+  end
+
   @doc """
   Decode notifications from the wpa_supplicant
   """
-  def notif(<< "CTRL-REQ-", rest::binary >>) do
+  def decode_notif(<< "CTRL-REQ-", rest::binary >>) do
     [field, net_id, text] = String.split(rest, "-", parts: 3, trim: true)
     {String.to_atom("CTRL-REQ-" <> field), String.to_integer(net_id), text}
   end
-  def notif(<< "CTRL-EVENT-BSS-ADDED", rest::binary >>) do
+  def decode_notif(<< "CTRL-EVENT-BSS-ADDED", rest::binary >>) do
     [entry_id, bssid] = String.split(rest, " ", trim: true)
     {:"CTRL-EVENT-BSS-ADDED", String.to_integer(entry_id), bssid}
   end
-  def notif(<< "CTRL-EVENT-BSS-REMOVED", rest::binary >>) do
+  def decode_notif(<< "CTRL-EVENT-BSS-REMOVED", rest::binary >>) do
     [entry_id, bssid] = String.split(rest, " ", trim: true)
     {:"CTRL-EVENT-BSS-REMOVED", String.to_integer(entry_id), bssid}
   end
-  def notif(<< "CTRL-EVENT-CONNECTED", _rest::binary >>) do
+  def decode_notif(<< "CTRL-EVENT-CONNECTED", _rest::binary >>) do
     :"CTRL-EVENT-CONNECTED"
   end
-  def notif(<< "CTRL-EVENT-DISCONNECTED", _rest::binary >>) do
+  def decode_notif(<< "CTRL-EVENT-DISCONNECTED", _rest::binary >>) do
     :"CTRL-EVENT-DISCONNECTED"
   end
-  def notif(<< "CTRL-EVENT-", _type::binary>> = event) do
+  def decode_notif(<< "CTRL-EVENT-", _type::binary>> = event) do
     event |> String.rstrip |> String.to_atom
   end
-  def notif(<< "WPS-", _type::binary>> = event) do
+  def decode_notif(<< "WPS-", _type::binary>> = event) do
     event |> String.rstrip |> String.to_atom
   end
-  def notif(<< "AP-STA-CONNECTED ", mac::binary>>) do
+  def decode_notif(<< "AP-STA-CONNECTED ", mac::binary>>) do
     {:"AP-STA-CONNECTED", String.rstrip(mac)}
   end
-  def notif(<< "AP-STA-DISCONNECTED ", mac::binary>>) do
+  def decode_notif(<< "AP-STA-DISCONNECTED ", mac::binary>>) do
     {:"AP-STA-DISCONNECTED", String.rstrip(mac)}
   end
-  def notif(string) do
+  def decode_notif(string) do
     {:INFO, String.rstrip(string)}
   end
 
@@ -56,7 +102,7 @@ defmodule WpaSupplicant.Decode do
   The decoding of a response depends on the request, so pass the request as
   the first argument and the response as the second one.
   """
-  def resp(req, resp) do
+  def decode_resp(req, resp) do
     # Strip the response of whitespace before trying to parse it.
     tresp(req, String.strip(resp))
   end
