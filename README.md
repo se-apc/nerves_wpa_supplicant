@@ -1,5 +1,5 @@
 # Nerves.WpaSupplicant
-[![Build Status](https://travis-ci.org/nerves-project/nerves_wpa_supplicant.svg)](https://travis-ci.org/nerves-project/nerves_wpa_supplicant)
+[![Build Status](https://travis-ci.org/nerves-project/nerves_wpa_supplicant.svg?branch=master)](https://travis-ci.org/nerves-project/nerves_wpa_supplicant)
 
 This package enables Elixir applications to interact with the local WPA
 supplicant. The WPA supplicant handles various Wi-Fi operations like scanning
