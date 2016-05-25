@@ -1,8 +1,11 @@
 defmodule Mix.Tasks.Compile.WpaSupplicant do
   @shortdoc "Compiles the wpa_ex port binary"
   def run(_) do
-    {result, _error_code} = System.cmd("make", ["priv/wpa_ex"], stderr_to_stdout: true)
+    {result, error_code} = System.cmd("make", ["priv/wpa_ex"], stderr_to_stdout: true)
     IO.binwrite result
+    if error_code != 0 do
+      raise Mix.Error, "Make returned an error"
+    end
     Mix.Project.build_structure
   end
 end
@@ -41,8 +44,8 @@ defmodule NervesWpaSupplicant.Mixfile do
   end
 
   defp package do
-    %{files: ["lib", "src/*.[ch]", "src/wpa_ctrl/*.[ch]", "test", "mix.exs", "README.md", "LICENSE", "Makefile"],
-      contributors: ["Frank Hunleth", "Justin Schneck"],
+    %{files: ["lib", "src/*.[ch]", "src/wpa_ctrl/*.[ch]", "test", "mix.exs", "README.md", "LICENSE", "CHANGELOG.md", "Makefile"],
+      maintainers: ["Frank Hunleth", "Justin Schneck"],
       licenses: ["Apache-2.0", "BSD-3c"],
       links: %{"GitHub" => "https://github.com/nerves-project/nerves_wpa_supplicant"}}
   end
