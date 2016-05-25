@@ -15,7 +15,7 @@ If [available in Hex](https://hex.pm/docs/publish), the package can be installed
   1. Add nerves_wpa_supplicant to your list of dependencies in `mix.exs`:
 
         def deps do
-          [{:nerves_wpa_supplicant, "~> 0.2.0"}]
+          [{:nerves_wpa_supplicant, "~> 0.2.1"}]
         end
 
   2. Ensure nerves_wpa_supplicant is started before your application:
