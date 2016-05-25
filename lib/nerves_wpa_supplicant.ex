@@ -182,7 +182,7 @@ defmodule Nerves.WpaSupplicant do
   end
 
   defp handle_wpa(<< "<", _priority::utf8, ">", notification::binary>>, state) do
-    decoded_notif = Messages.decode_event(notification)
+    decoded_notif = Messages.decode_notif(notification)
     GenEvent.notify(state.manager, {:nerves_wpa_supplicant, self, decoded_notif})
     {:noreply, state}
   end
