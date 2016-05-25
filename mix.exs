@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Compile.WpaSupplicant do
-  @shortdoc "Compiles the wpa_ex port binary"
+  @shortdoc "Compiles the port binary"
   def run(_) do
-    {result, error_code} = System.cmd("make", ["priv/wpa_ex"], stderr_to_stdout: true)
+    {result, error_code} = System.cmd("make", ["all"], stderr_to_stdout: true)
     IO.binwrite result
     if error_code != 0 do
       raise Mix.Error, "Make returned an error"

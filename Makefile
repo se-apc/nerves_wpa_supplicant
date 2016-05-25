@@ -13,7 +13,6 @@ WPA_DEFINES = -DCONFIG_CTRL_IFACE -DCONFIG_CTRL_IFACE_UNIX
 LDFLAGS += -lrt
 CFLAGS ?= -O2 -Wall -Wextra -Wno-unused-parameter
 CC ?= $(CROSSCOMPILE)gcc
-MIX ?= mix
 
 # If not cross-compiling, then run sudo by default
 ifeq ($(origin CROSSCOMPILE), undefined)
@@ -24,13 +23,9 @@ else
 SUDO ?= true
 endif
 
-all: compile
+.PHONY: all clean
 
-compile:
-	$(MIX) compile
-
-test:
-	$(MIX) test
+all: priv/wpa_ex
 
 %.o: %.c
 	$(CC) -c $(WPA_DEFINES) $(CFLAGS) -o $@ $<
@@ -42,7 +37,4 @@ priv/wpa_ex: src/wpa_ex.o src/wpa_ctrl/os_unix.o src/wpa_ctrl/wpa_ctrl.o
 	SUDO_ASKPASS=$(SUDO_ASKPASS) $(SUDO) -- sh -c 'chown root:root $@; chmod +s $@'
 
 clean:
-	$(MIX) clean
 	rm -f priv/wpa_ex src/*.o src/wpa_ctrl/*.o
-
-.PHONY: all compile test clean
