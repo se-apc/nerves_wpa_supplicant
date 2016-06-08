@@ -90,19 +90,19 @@ defmodule Nerves.WpaSupplicant do
   the most useful. The full list can be found in the wpa_supplicant
   documentation. Here's a list of some common ones:
 
-  Option                | Description
-  ----------------------|------------
-  :ssid                 | Network name. This is mandatory.
-  :key_mgmt             | The security in use. This is mandatory. Set to :NONE, :WPA_PSK
-  :proto                | Protocol use use. E.g., :WPA2
-  :psk                  | WPA preshared key. 8-63 chars or the 64 char one as processed by `wpa_passphrase`
-  :bssid                | Optional BSSID. If set, only associate with the AP with a matching BSSID
-  :mode                 | Mode: 0 = infrastructure (default), 1 = ad-hoc, 2 = AP
-  :frequency            | Channel frequency. e.g., 2412 for 802.11b/g channel 1
-  :wep_key0..3          | Static WEP key
-  :wep_tx_keyidx        | Default WEP key index (0 to 3)
+      Option                | Description
+      ----------------------|------------
+      :ssid                 | Network name. This is mandatory.
+      :key_mgmt             | The security in use. This is mandatory. Set to :NONE, :WPA_PSK
+      :proto                | Protocol use use. E.g., :WPA2
+      :psk                  | WPA preshared key. 8-63 chars or the 64 char one as processed by `wpa_passphrase`
+      :bssid                | Optional BSSID. If set, only associate with the AP with a matching BSSID
+      :mode                 | Mode: 0 = infrastructure (default), 1 = ad-hoc, 2 = AP
+      :frequency            | Channel frequency. e.g., 2412 for 802.11b/g channel 1
+      :wep_key0..3          | Static WEP key
+      :wep_tx_keyidx        | Default WEP key index (0 to 3)
 
-  Note that this is a helper function that wraps several low level calls and
+  Note that this is a helper function that wraps several low-level calls and
   is limited to specifying only one network at a time. If you'd
   like to register multiple networks with the supplicant, send the
   ADD_NETWORK, SET_NETWORK, SELECT_NETWORK messages manually.
@@ -165,7 +165,7 @@ defmodule Nerves.WpaSupplicant do
 
   def handle_call({:request, command}, from, state) do
     payload = Messages.encode(command)
-    Logger.info("NervesWpaSupplicant: sending '#{payload}'")
+    Logger.info("Nerves.WpaSupplicant: sending '#{payload}'")
     send state.port, {self, {:command, payload}}
     state = %{state | :requests => state.requests ++ [{from, command}]}
     {:noreply, state}
