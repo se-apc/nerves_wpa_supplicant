@@ -18,7 +18,7 @@ supplicant implementation to bring these capabilities to your Elixir code.
 1. Add `nerves_wpa_supplicant` to your list of dependencies in `mix.exs`:
 
         def deps do
-          [{:nerves_wpa_supplicant, "~> 0.2.1"}]
+          [{:nerves_wpa_supplicant, "~> 0.2.2"}]
         end
 
 2. Ensure `nerves_wpa_supplicant` is started before your application:
