@@ -106,7 +106,10 @@ defmodule Nerves.WpaSupplicant do
   is limited to specifying only one network at a time. If you'd
   like to register multiple networks with the supplicant, send the
   ADD_NETWORK, SET_NETWORK, SELECT_NETWORK messages manually.
+
+  Returns `:ok` or `{:error, key, reason}` if a key fails to set.
   """
+  def set_network(pid, options) when is_map(options), do: set_network(pid, Map.to_list(options))
   def set_network(pid, options) do
     # Don't worry if the following fails. We just need to
     # make sure that no other networks registered with the
@@ -114,11 +117,23 @@ defmodule Nerves.WpaSupplicant do
     request(pid, {:REMOVE_NETWORK, :all})
 
     netid = request(pid, :ADD_NETWORK)
-    Enum.each(options, fn({key, value}) ->
-        :ok = request(pid, {:SET_NETWORK, netid, key, value})
-      end)
+    case set_network_kvlist(pid, netid, options, {:none, :ok}) do
+      :ok ->
+        # Everything succeeded -> select the network
+        request(pid, {:SELECT_NETWORK, netid})
+      error ->
+        # Something failed, so return the error
+        error
+    end
+  end
 
-    :ok = request(pid, {:SELECT_NETWORK, netid})
+  defp set_network_kvlist(pid, netid, [{key, value} | tail], {_, :ok}) do
+    rc = request(pid, {:SET_NETWORK, netid, key, value})
+    set_network_kvlist(pid, netid, tail, {key, rc})
+  end
+  defp set_network_kvlist(_pid, _netid, [], {_, :ok}), do: :ok
+  defp set_network_kvlist(_pid, _netid, _kvpairs, {key, rc}) do
+    {:error, key, rc}
   end
 
   @doc """
