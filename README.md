@@ -1,5 +1,6 @@
 # Nerves.WpaSupplicant
 [![Build Status](https://travis-ci.org/nerves-project/nerves_wpa_supplicant.svg?branch=master)](https://travis-ci.org/nerves-project/nerves_wpa_supplicant)
+[![Hex version](https://img.shields.io/hexpm/v/nerves_wpa_supplicant.svg "Hex version")](https://hex.pm/packages/nerves_wpa_supplicant)
 
 This package enables Elixir applications to query or effect changes on Wi-Fi
 network connections of a host system, by interacting with a [wireless
