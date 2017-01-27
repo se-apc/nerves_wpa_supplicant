@@ -3,7 +3,7 @@ defmodule NervesWpaSupplicant.Mixfile do
 
   def project do
     [app: :nerves_wpa_supplicant,
-     version: "0.2.2",
+     version: "0.2.3",
      elixir: "~> 1.2",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
@@ -42,7 +42,7 @@ defmodule NervesWpaSupplicant.Mixfile do
   defp deps do
     [
       {:elixir_make, "~> 0.3"},
-      {:earmark, "~> 0.1", only: :dev},
+      {:earmark, "~> 1.0", only: :dev},
       {:ex_doc, "~> 0.11", only: :dev},
       {:credo, "~> 0.3", only: [:dev, :test]}
     ]

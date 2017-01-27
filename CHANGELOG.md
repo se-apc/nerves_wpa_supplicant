@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.2.3
+
+  * Bugs fixed
+    * Clean up warnings for Elixir 1.4
+
 ## v0.2.2
 
   * Bug fixes
