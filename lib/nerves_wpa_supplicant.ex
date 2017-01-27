@@ -181,7 +181,7 @@ defmodule Nerves.WpaSupplicant do
   def handle_call({:request, command}, from, state) do
     payload = Messages.encode(command)
     Logger.info("Nerves.WpaSupplicant: sending '#{payload}'")
-    send state.port, {self, {:command, payload}}
+    send state.port, {self(), {:command, payload}}
     state = %{state | :requests => state.requests ++ [{from, command}]}
     {:noreply, state}
   end
@@ -198,7 +198,7 @@ defmodule Nerves.WpaSupplicant do
 
   defp handle_wpa(<< "<", _priority::utf8, ">", notification::binary>>, state) do
     decoded_notif = Messages.decode_notif(notification)
-    GenEvent.notify(state.manager, {:nerves_wpa_supplicant, self, decoded_notif})
+    GenEvent.notify(state.manager, {:nerves_wpa_supplicant, self(), decoded_notif})
     {:noreply, state}
   end
   defp handle_wpa(response, state) do
