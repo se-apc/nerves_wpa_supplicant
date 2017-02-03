@@ -20,25 +20,15 @@ defmodule Nerves.WpaSupplicant do
   alias Nerves.WpaSupplicant.Messages
 
   defstruct port: nil,
-            manager: nil,
+            ifname: nil,
             requests: []
 
   @doc """
-  Start and link a Nerves.WpaSupplicant process that uses the specified
-  control socket. A GenEvent will be spawned for managing wpa_supplicant
-  events. Call event_manager/1 to get the GenEvent pid.
-  """
-  def start_link(control_socket_path) do
-    { :ok, manager } = GenEvent.start_link
-    start_link(control_socket_path, manager)
-  end
-
-  @doc """
   Start and link a Nerves.WpaSupplicant that uses the specified control
-  socket and GenEvent event manager.
+  socket.
   """
-  def start_link(control_socket_path, event_manager) do
-    GenServer.start_link(__MODULE__, {control_socket_path, event_manager})
+  def start_link(ifname, control_socket_path, opts \\ []) do
+    GenServer.start_link(__MODULE__, {ifname, control_socket_path}, opts)
   end
 
   @doc """
@@ -61,11 +51,10 @@ defmodule Nerves.WpaSupplicant do
   end
 
   @doc """
-  Get a reference to the GenEvent event manager in use by this
-  supplicant.
+  Get the interface name from the wpa_supplicant state
   """
-  def event_manager(pid) do
-    GenServer.call(pid, :event_manager)
+  def ifname(pid) do
+    GenServer.call(pid, :ifname)
   end
 
   @doc """
@@ -143,7 +132,8 @@ defmodule Nerves.WpaSupplicant do
   for access points recently.
   """
   def scan(pid) do
-    stream = pid |> event_manager |> GenEvent.stream(timeout: 60000)
+    ifname = ifname(pid)
+    {:ok, _} = Registry.register(Nerves.WpaSupplicant, ifname, [])
     case request(pid, :SCAN) do
       :ok -> :ok
 
@@ -152,11 +142,18 @@ defmodule Nerves.WpaSupplicant do
       "FAIL-BUSY" -> :ok
     end
 
-    # Wait for the scan results
-    Enum.take_while(stream, fn(x) -> x == {:wpa_supplicant, pid, :"CTRL-EVENT-SCAN-RESULTS"} end)
-
+    :ok = wait_for_scan(ifname)
+    {:ok, _} = Registry.unregister(Nerves.WpaSupplicant, ifname)
     # Collect all BSSs
     all_bss(pid, 0, [])
+  end
+
+  defp wait_for_scan(ifname) do
+    receive do
+      {Nerves.WpaSupplicant, :"CTRL-EVENT-SCAN-RESULTS", ^ifname} ->
+        :ok
+      _ -> wait_for_scan(ifname)
+    end
   end
 
   defp all_bss(pid, count, acc) do
@@ -168,14 +165,19 @@ defmodule Nerves.WpaSupplicant do
     end
   end
 
-  def init({control_socket_path, event_manager}) do
+  def init({ifname, control_socket_path}) do
+    case Registry.start_link(:duplicate, __MODULE__) do
+      {:ok, _} -> :noop
+      {:error, {:already_started, _}} -> :noop
+      {:error, error} -> raise "Cannot Start #{__MODULE__} Registry: #{}"
+    end
     executable = :code.priv_dir(:nerves_wpa_supplicant) ++ '/wpa_ex'
     port = Port.open({:spawn_executable, executable},
                      [{:args, [control_socket_path]},
                       {:packet, 2},
                       :binary,
                       :exit_status])
-    { :ok, %Nerves.WpaSupplicant{port: port, manager: event_manager} }
+    {:ok, %Nerves.WpaSupplicant{port: port, ifname: ifname}}
   end
 
   def handle_call({:request, command}, from, state) do
@@ -185,8 +187,8 @@ defmodule Nerves.WpaSupplicant do
     state = %{state | :requests => state.requests ++ [{from, command}]}
     {:noreply, state}
   end
-  def handle_call(:event_manager, _from, state) do
-    {:reply, state.manager, state}
+  def handle_call(:ifname, _from, state) do
+    {:reply, state.ifname, state}
   end
 
   def handle_info({_, {:data, message}}, state) do
@@ -198,7 +200,9 @@ defmodule Nerves.WpaSupplicant do
 
   defp handle_wpa(<< "<", _priority::utf8, ">", notification::binary>>, state) do
     decoded_notif = Messages.decode_notif(notification)
-    GenEvent.notify(state.manager, {:nerves_wpa_supplicant, self(), decoded_notif})
+    Registry.dispatch(Nerves.WpaSupplicant, state.ifname, fn entries ->
+      for {pid, _} <- entries, do: send(pid, {Nerves.WpaSupplicant, decoded_notif, %{ifname: state.ifname}})
+    end)
     {:noreply, state}
   end
   defp handle_wpa(response, state) do
