@@ -115,22 +115,13 @@ the network.
       pairwise_cipher: "CCMP", ssid: "MyNetworkSsid", wpa_state: "COMPLETED"}
 
 Polling the `wpa_supplicant` for status isn't ideal, so it's possible to
-register a `GenEvent` with `Nerves.WpaSupplicant`. If you don't supply one with
-a call to `start_link/2`, one is automatically created and available via
-`Nerves.WpaSupplicant.event_manager/1`. The following example shows how to view
+register to the `Nerves.WpaSupplicant` Registry. The following example shows how to view
 events at the prompt:
 
-    iex> defmodule Forwarder do
-    ...>  use GenEvent
-    ...>  def handle_event(event, parent) do
-    ...>    send parent, event
-    ...>    {:ok, parent}
-    ...>  end
-    ...> end
-    iex> Nerves.WpaSupplicant.event_manager(pid) |> GenEvent.add_handler(Forwarder, self())
+    iex> Registry.register(Nerves.WpaSupplicant, "wlan0", [])
     iex> flush
-    {:nerves_wpa_supplicant, #PID<0.85.0>, :"CTRL-EVENT-SCAN-STARTED"}
-    {:nerves_wpa_supplicant, #PID<0.85.0>, :"CTRL-EVENT-SCAN-RESULTS"}
+    {Nerves.WpaSupplicant, :"CTRL-EVENT-SCAN-STARTED", %{ifname: "wlan0"}}
+    {Nerves.WpaSupplicant, :"CTRL-EVENT-SCAN-RESULTS", %{ifname: "wlan0"}}
 
 ## Low-level messaging
 
