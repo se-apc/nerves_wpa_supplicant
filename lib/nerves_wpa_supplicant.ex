@@ -166,11 +166,6 @@ defmodule Nerves.WpaSupplicant do
   end
 
   def init({ifname, control_socket_path}) do
-    case Registry.start_link(:duplicate, __MODULE__) do
-      {:ok, _} -> :noop
-      {:error, {:already_started, _}} -> :noop
-      {:error, error} -> raise "Cannot Start #{__MODULE__} Registry: #{}"
-    end
     executable = :code.priv_dir(:nerves_wpa_supplicant) ++ '/wpa_ex'
     port = Port.open({:spawn_executable, executable},
                      [{:args, [control_socket_path]},

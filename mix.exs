@@ -20,7 +20,8 @@ defmodule NervesWpaSupplicant.Mixfile do
   #
   # Type "mix help compile.app" for more information
   def application do
-    [applications: [:logger]]
+    [extra_applications: [:logger],
+     mod: {Nerves.WpaSupplicant.Application, []}]
   end
 
   defp description do
