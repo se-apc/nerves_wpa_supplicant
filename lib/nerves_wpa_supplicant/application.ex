@@ -7,7 +7,7 @@ defmodule Nerves.WpaSupplicant.Application do
     import Supervisor.Spec, warn: false
 
     children = [
-      worker(Registry, [:duplicate, Nerves.WpaSupplicant], restart: :transient),
+      supervisor(Registry, [:duplicate, Nerves.WpaSupplicant]),
     ]
 
     opts = [strategy: :one_for_one, name: Nerves.WpaSupplicant.Supervisor]
