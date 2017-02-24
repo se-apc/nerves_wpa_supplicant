@@ -133,6 +133,7 @@ defmodule Nerves.WpaSupplicant do
   """
   def scan(pid) do
     ifname = ifname(pid)
+    Logger.debug "Scanning: #{ifname}"
     {:ok, _} = Registry.register(Nerves.WpaSupplicant, ifname, [])
     case request(pid, :SCAN) do
       :ok -> :ok
@@ -141,23 +142,27 @@ defmodule Nerves.WpaSupplicant do
       # returned.
       "FAIL-BUSY" -> :ok
     end
-
     :ok = wait_for_scan(ifname)
-    {:ok, _} = Registry.unregister(Nerves.WpaSupplicant, ifname)
+    :ok = Registry.unregister(Nerves.WpaSupplicant, ifname)
     # Collect all BSSs
     all_bss(pid, 0, [])
   end
 
   defp wait_for_scan(ifname) do
     receive do
-      {Nerves.WpaSupplicant, :"CTRL-EVENT-SCAN-RESULTS", ^ifname} ->
+      {Nerves.WpaSupplicant, :"CTRL-EVENT-SCAN-RESULTS", %{ifname: ^ifname}} ->
+        Logger.debug "Got all scan results"
         :ok
-      _ -> wait_for_scan(ifname)
+      other ->
+        Logger.debug "Waiting for more scan results, got #{inspect other}"
+        wait_for_scan(ifname)
     end
   end
 
   defp all_bss(pid, count, acc) do
+    Logger.debug "Calling :BSS - #{count}"
     result = request(pid, {:BSS, count})
+    Logger.debug ":BSS Result #{count}: #{inspect result}"
     if result do
       all_bss(pid, count + 1, [result | acc])
     else
