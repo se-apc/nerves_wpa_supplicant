@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.3.1
+
+  * Enhancements
+    * Support compilation on OSX. It won't work, but it's good enough for
+      generating docs and pushing to hex.
+
+
 ## v0.3.0
 
   * Enhancements
