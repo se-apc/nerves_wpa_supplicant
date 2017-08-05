@@ -6,6 +6,8 @@
     * Support compilation on OSX. It won't work, but it's good enough for
       generating docs and pushing to hex.
 
+  * Bug fixes
+    * Fixed a couple bugs when scanning for WiFi networks
 
 ## v0.3.0
 
@@ -14,7 +16,7 @@
 
 ## v0.2.3
 
-  * Bugs fixed
+  * Bug fixes
     * Clean up warnings for Elixir 1.4
 
 ## v0.2.2
