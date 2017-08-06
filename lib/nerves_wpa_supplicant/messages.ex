@@ -81,19 +81,19 @@ defmodule Nerves.WpaSupplicant.Messages do
     :"CTRL-EVENT-DISCONNECTED"
   end
   def decode_notif(<< "CTRL-EVENT-", _type::binary>> = event) do
-    event |> String.rstrip |> String.to_atom
+    event |> String.trim_trailing |> String.to_atom
   end
   def decode_notif(<< "WPS-", _type::binary>> = event) do
-    event |> String.rstrip |> String.to_atom
+    event |> String.trim_trailing |> String.to_atom
   end
   def decode_notif(<< "AP-STA-CONNECTED ", mac::binary>>) do
-    {:"AP-STA-CONNECTED", String.rstrip(mac)}
+    {:"AP-STA-CONNECTED", String.trim_trailing(mac)}
   end
   def decode_notif(<< "AP-STA-DISCONNECTED ", mac::binary>>) do
-    {:"AP-STA-DISCONNECTED", String.rstrip(mac)}
+    {:"AP-STA-DISCONNECTED", String.trim_trailing(mac)}
   end
   def decode_notif(string) do
-    {:INFO, String.rstrip(string)}
+    {:INFO, String.trim_trailing(string)}
   end
 
   @doc """
@@ -104,7 +104,7 @@ defmodule Nerves.WpaSupplicant.Messages do
   """
   def decode_resp(req, resp) do
     # Strip the response of whitespace before trying to parse it.
-    tresp(req, String.strip(resp))
+    tresp(req, String.trim(resp))
   end
 
   defp tresp(:PING, "PONG"), do: :PONG
@@ -117,7 +117,7 @@ defmodule Nerves.WpaSupplicant.Messages do
   defp tresp(:ADD_NETWORK, netid), do: String.to_integer(netid)
   defp tresp(_, "OK"), do: :ok
   defp tresp(_, "FAIL"), do: :FAIL
-  defp tresp(_, << "\"", string::binary >>), do: String.rstrip(string, ?")
+  defp tresp(_, << "\"", string::binary >>), do: String.trim_trailing(string, "\"")
   defp tresp(_, resp), do: resp
 
   defp kv_resp(resp) do
@@ -125,7 +125,7 @@ defmodule Nerves.WpaSupplicant.Messages do
       |> String.split("\n", trim: true)
       |> List.foldl(%{}, fn(pair, acc) ->
            [key, value] = String.split(pair, "=")
-           Map.put(acc, String.to_atom(key), kv_value(String.rstrip(value)))
+           Map.put(acc, String.to_atom(key), kv_value(String.trim_trailing(value)))
          end)
   end
 
