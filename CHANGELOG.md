@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.3.2
+  * Enhancements
+    * Fix deprecation warnings for Elixir 1.5
+
 ## v0.3.1
 
   * Enhancements
