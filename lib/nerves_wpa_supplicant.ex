@@ -156,6 +156,9 @@ defmodule Nerves.WpaSupplicant do
       other ->
         Logger.debug "Waiting for more scan results, got #{inspect other}"
         wait_for_scan(ifname)
+      after 5000 ->
+        Logger.debug "Timed out scanning!"
+        :timeout
     end
   end
 
