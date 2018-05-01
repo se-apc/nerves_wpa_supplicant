@@ -100,8 +100,8 @@ static void process_erl()
     debug("process_erl\n");
     ssize_t amount_read =
         read(STDIN_FILENO,
-            erl_buffer + erl_buffer_ix,
-            sizeof(erl_buffer) - erl_buffer_ix);
+             erl_buffer + erl_buffer_ix,
+             sizeof(erl_buffer) - erl_buffer_ix);
 
     if (amount_read < 0) {
         /* EINTR is ok to get if we were interrupted by a signal. */
