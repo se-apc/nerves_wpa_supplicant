@@ -98,7 +98,9 @@ defmodule Nerves.WpaSupplicant do
 
   Returns `:ok` or `{:error, key, reason}` if a key fails to set.
   """
-  def set_network(pid, options) when is_map(options), do: set_network(pid, Map.to_list(options))
+  def set_network(pid, options) when is_map(options),
+    do: set_network(pid, Map.to_list(options))
+
   def set_network(pid, options) do
     # Don't worry if the following fails. We just need to
     # make sure that no other networks registered with the
@@ -106,10 +108,12 @@ defmodule Nerves.WpaSupplicant do
     request(pid, {:REMOVE_NETWORK, :all})
 
     netid = request(pid, :ADD_NETWORK)
+
     case set_network_kvlist(pid, netid, options, {:none, :ok}) do
       :ok ->
         # Everything succeeded -> select the network
         request(pid, {:SELECT_NETWORK, netid})
+
       error ->
         # Something failed, so return the error
         error
@@ -120,7 +124,9 @@ defmodule Nerves.WpaSupplicant do
     rc = request(pid, {:SET_NETWORK, netid, key, value})
     set_network_kvlist(pid, netid, tail, {key, rc})
   end
+
   defp set_network_kvlist(_pid, _netid, [], {_, :ok}), do: :ok
+
   defp set_network_kvlist(_pid, _netid, _kvpairs, {key, rc}) do
     {:error, key, rc}
   end
@@ -133,15 +139,19 @@ defmodule Nerves.WpaSupplicant do
   """
   def scan(pid) do
     ifname = ifname(pid)
-    Logger.debug "Scanning: #{ifname}"
+    Logger.debug("Scanning: #{ifname}")
     {:ok, _} = Registry.register(Nerves.WpaSupplicant, ifname, [])
+
     case request(pid, :SCAN) do
-      :ok -> :ok
+      :ok ->
+        :ok
 
       # If the wpa_supplicant is already scanning, FAIL-BUSY is
       # returned.
-      "FAIL-BUSY" -> :ok
+      "FAIL-BUSY" ->
+        :ok
     end
+
     :ok = wait_for_scan(ifname)
     :ok = Registry.unregister(Nerves.WpaSupplicant, ifname)
     # Collect all BSSs
@@ -151,21 +161,24 @@ defmodule Nerves.WpaSupplicant do
   defp wait_for_scan(ifname) do
     receive do
       {Nerves.WpaSupplicant, :"CTRL-EVENT-SCAN-RESULTS", %{ifname: ^ifname}} ->
-        Logger.debug "Got all scan results"
+        Logger.debug("Got all scan results")
         :ok
+
       other ->
-        Logger.debug "Waiting for more scan results, got #{inspect other}"
+        Logger.debug("Waiting for more scan results, got #{inspect(other)}")
         wait_for_scan(ifname)
-      after 5000 ->
-        Logger.debug "Timed out scanning!"
+    after
+      5000 ->
+        Logger.debug("Timed out scanning!")
         :timeout
     end
   end
 
   defp all_bss(pid, count, acc) do
-    Logger.debug "Calling :BSS - #{count}"
+    Logger.debug("Calling :BSS - #{count}")
     result = request(pid, {:BSS, count})
-    Logger.debug ":BSS Result #{count}: #{inspect result}"
+    Logger.debug(":BSS Result #{count}: #{inspect(result)}")
+
     if result do
       all_bss(pid, count + 1, [result | acc])
     else
@@ -175,21 +188,26 @@ defmodule Nerves.WpaSupplicant do
 
   def init({ifname, control_socket_path}) do
     executable = :code.priv_dir(:nerves_wpa_supplicant) ++ '/wpa_ex'
-    port = Port.open({:spawn_executable, executable},
-                     [{:args, [control_socket_path]},
-                      {:packet, 2},
-                      :binary,
-                      :exit_status])
+
+    port =
+      Port.open({:spawn_executable, executable}, [
+        {:args, [control_socket_path]},
+        {:packet, 2},
+        :binary,
+        :exit_status
+      ])
+
     {:ok, %Nerves.WpaSupplicant{port: port, ifname: ifname}}
   end
 
   def handle_call({:request, command}, from, state) do
     payload = Messages.encode(command)
     Logger.info("Nerves.WpaSupplicant: sending '#{payload}'")
-    send state.port, {self(), {:command, payload}}
+    send(state.port, {self(), {:command, payload}})
     state = %{state | :requests => state.requests ++ [{from, command}]}
     {:noreply, state}
   end
+
   def handle_call(:ifname, _from, state) do
     {:reply, state.ifname, state}
   end
@@ -197,23 +215,32 @@ defmodule Nerves.WpaSupplicant do
   def handle_info({_, {:data, message}}, state) do
     handle_wpa(message, state)
   end
+
   def handle_info({_, {:exit_status, _}}, state) do
     {:stop, :unexpected_exit, state}
   end
 
-  defp handle_wpa(<< "<", _priority::utf8, ">", notification::binary>>, state) do
+  defp handle_wpa(<<"<", _priority::utf8, ">", notification::binary>>, state) do
     decoded_notif = Messages.decode_notif(notification)
+
     Registry.dispatch(Nerves.WpaSupplicant, state.ifname, fn entries ->
-      for {pid, _} <- entries, do: send(pid, {Nerves.WpaSupplicant, decoded_notif, %{ifname: state.ifname}})
+      for {pid, _} <- entries,
+          do:
+            send(
+              pid,
+              {Nerves.WpaSupplicant, decoded_notif, %{ifname: state.ifname}}
+            )
     end)
+
     {:noreply, state}
   end
+
   defp handle_wpa(response, state) do
     [{client, command} | next_ones] = state.requests
     state = %{state | :requests => next_ones}
 
     decoded_response = Messages.decode_resp(command, response)
-    GenServer.reply client, decoded_response
+    GenServer.reply(client, decoded_response)
     {:noreply, state}
   end
 end

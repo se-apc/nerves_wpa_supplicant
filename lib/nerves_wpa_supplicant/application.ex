@@ -7,11 +7,10 @@ defmodule Nerves.WpaSupplicant.Application do
     import Supervisor.Spec, warn: false
 
     children = [
-      supervisor(Registry, [:duplicate, Nerves.WpaSupplicant]),
+      supervisor(Registry, [:duplicate, Nerves.WpaSupplicant])
     ]
 
     opts = [strategy: :one_for_one, name: Nerves.WpaSupplicant.Supervisor]
     Supervisor.start_link(children, opts)
   end
-
 end
