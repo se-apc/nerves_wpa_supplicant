@@ -90,11 +90,11 @@ defmodule Nerves.WpaSupplicant do
       :frequency            | Channel frequency. e.g., 2412 for 802.11b/g channel 1
       :wep_key0..3          | Static WEP key
       :wep_tx_keyidx        | Default WEP key index (0 to 3)
+      :priority             | Integer priority of the network where higher number is higher priority
 
   Note that this is a helper function that wraps several low-level calls and
   is limited to specifying only one network at a time. If you'd
-  like to register multiple networks with the supplicant, send the
-  ADD_NETWORK, SET_NETWORK, SELECT_NETWORK messages manually.
+  like to register multiple networks with the supplicant, use add_network.
 
   Returns `:ok` or `{:error, key, reason}` if a key fails to set.
   """
@@ -105,12 +105,10 @@ defmodule Nerves.WpaSupplicant do
     # Don't worry if the following fails. We just need to
     # make sure that no other networks registered with the
     # wpa_supplicant take priority over ours
-    request(pid, {:REMOVE_NETWORK, :all})
+    remove_all_networks(pid)
 
-    netid = request(pid, :ADD_NETWORK)
-
-    case set_network_kvlist(pid, netid, options, {:none, :ok}) do
-      :ok ->
+    case add_network(pid, options) do
+      {:ok, netid} ->
         # Everything succeeded -> select the network
         request(pid, {:SELECT_NETWORK, netid})
 
@@ -118,6 +116,51 @@ defmodule Nerves.WpaSupplicant do
         # Something failed, so return the error
         error
     end
+  end
+
+  @doc """
+  Tell the wpa_supplicant to add and enable the specified network. Invoke like
+  this:
+
+  iex> Nerves.WpaSupplicant.add_network(pid, ssid: "MyNetworkSsid", key_mgmt: :WPA_PSK, psk: "secret")
+
+  or like this:
+
+  iex> Nerves.WpaSupplicant.add_network(pid, %{ssid: "MyNetworkSsid", key_mgmt: :WPA_PSK, psk: "secret"})
+
+  For common options, see `set_network/2`.
+
+  Returns `{:ok, netid}` or `{:error, key, reason}` if a key fails to set.
+  """
+  def add_network(pid, options) when is_map(options),
+    do: add_network(pid, Map.to_list(options))
+
+  def add_network(pid, options) do
+    netid = request(pid, :ADD_NETWORK)
+    with :ok <- set_network_kvlist(pid, netid, options, {:none, :ok}),
+         :ok <- request(pid, {:ENABLE_NETWORK, netid}) do
+        {:ok, netid}
+    else
+      error -> error
+    end
+  end
+
+  @doc """
+  Removes all configured networks.
+
+  Returns `:ok` or `{:error, key, reason}` if an error is encountered.
+  """
+  def remove_all_networks(pid) do
+    request(pid, {:REMOVE_NETWORK, :all})
+  end
+
+  @doc """
+  According to the docs, this forces a reassociation to the current access
+  point, but in practice it causes the supplicant to go through the network list
+  in priority order, connecting to the highest priority access point available.
+  """
+  def reassociate(pid) do
+    request(pid, :REASSOCIATE)
   end
 
   defp set_network_kvlist(pid, netid, [{key, value} | tail], {_, :ok}) do
