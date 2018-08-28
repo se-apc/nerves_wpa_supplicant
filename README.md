@@ -16,16 +16,11 @@ supplicant implementation to bring these capabilities to your Elixir code.
 ## Installation
 
 1. Add `nerves_wpa_supplicant` to your list of dependencies in `mix.exs`:
-
-        def deps do
-          [{:nerves_wpa_supplicant, "~> 0.2.2"}]
-        end
-
-2. Ensure `nerves_wpa_supplicant` is started before your application:
-
-        def application do
-          [applications: [:nerves_wpa_supplicant]]
-        end
+```elixir
+def deps do
+  [{:nerves_wpa_supplicant, "~> 0.3"}]
+end
+```
 
 ## Note on permissions
 
@@ -44,16 +39,22 @@ only additional step is to ensure that permissions are suitable on the `wpa_ex`
 binary as described in the preceding section. You'll be asked for your password
 for this step when you run `make`, by default.
 
-    $ make
+```bash
+$ make
+```
 
 If you want to disable the setuid root step in the Makefile, just set the `SUDO`
 environment variable to `true` to make it a no-op:
 
-    $ SUDO=true make
+```bash
+$ SUDO=true make
+```
 
 If you need to use a different askpass program, you can set that as well:
 
-    $ SUDO_ASKPASS=/usr/bin/ssh-askpass make
+```bash
+$ SUDO_ASKPASS=/usr/bin/ssh-askpass make
+```
 
 ## Running
 
@@ -64,64 +65,80 @@ doesn't work, the Elixir `Nerves.WpaSupplicant` won't work.
 If you're on a system where you can start the `wpa_supplicant` manually, here's
 an example command line:
 
-    $ /sbin/wpa_supplicant -iwlan0 -C/var/run/wpa_supplicant -B
+```bash
+$ /sbin/wpa_supplicant -iwlan0 -C/var/run/wpa_supplicant -B
+```
 
 Once you're happy that the `wpa_supplicant` is running, start `iex` by running:
 
-    $ iex -S mix
+```bash
+$ iex -S mix
+```
 
 Start a `Nerves.WpaSupplicant` process:
 
-    iex> {:ok, pid} = Nerves.WpaSupplicant.start_link("/var/run/wpa_supplicant/wlan0")
-    {:ok, #PID<0.82.0>}
+```elixir
+iex> {:ok, pid} = Nerves.WpaSupplicant.start_link("/var/run/wpa_supplicant/wlan0")
+{:ok, #PID<0.82.0>}
+```
 
 You can sanity-check that Elixir has properly attached to the `wpa_supplicant`
 daemon by pinging the daemon:
 
-    iex> Nerves.WpaSupplicant.request(pid, :PING)
-    :PONG
+```elixir
+iex> Nerves.WpaSupplicant.request(pid, :PING)
+:PONG
+```
 
 To scan for access points, call `Nerves.WpaSupplicant.scan/1`. This can take a few
 seconds:
 
-    iex> Nerves.WpaSupplicant.scan(pid)
-    [%{age: 42, beacon_int: 100, bssid: "00:1f:90:db:45:54", capabilities: 1073,
-       flags: "[WEP][ESS]", freq: 2462, id: 8,
-       ie: "00053153555434010882848b0c1296182403010b07",
-       level: -83, noise: 0, qual: 0, ssid: "1SUT4", tsf: 580579066269},
-     %{age: 109, beacon_int: 100, bssid: "00:18:39:7a:23:e8", capabilities: 1041,
-       flags: "[WEP][ESS]", freq: 2412, id: 5,
-       ie: "00076c696e6b737973010882848b962430486c0301",
-       level: -86, noise: 0, qual: 0, ssid: "linksys", tsf: 464957892243},
-     %{age: 42, beacon_int: 100, bssid: "1c:7e:e5:32:d1:f8", capabilities: 1041,
-       flags: "[WPA2-PSK-CCMP][ESS]", freq: 2412, id: 0,
-       ie: "000768756e6c657468010882848b960c1218240301",
-       level: -43, noise: 0, qual: 0, ssid: "dlink", tsf: 580587711245}]
+```elixir
+iex> Nerves.WpaSupplicant.scan(pid)
+[%{age: 42, beacon_int: 100, bssid: "00:1f:90:db:45:54", capabilities: 1073,
+   flags: "[WEP][ESS]", freq: 2462, id: 8,
+   ie: "00053153555434010882848b0c1296182403010b07",
+   level: -83, noise: 0, qual: 0, ssid: "1SUT4", tsf: 580579066269},
+ %{age: 109, beacon_int: 100, bssid: "00:18:39:7a:23:e8", capabilities: 1041,
+   flags: "[WEP][ESS]", freq: 2412, id: 5,
+   ie: "00076c696e6b737973010882848b962430486c0301",
+   level: -86, noise: 0, qual: 0, ssid: "linksys", tsf: 464957892243},
+ %{age: 42, beacon_int: 100, bssid: "1c:7e:e5:32:d1:f8", capabilities: 1041,
+   flags: "[WPA2-PSK-CCMP][ESS]", freq: 2412, id: 0,
+   ie: "000768756e6c657468010882848b960c1218240301",
+   level: -43, noise: 0, qual: 0, ssid: "dlink", tsf: 580587711245}]
+```
 
 To attach to an access point, you need to configure a network entry in the
 `wpa_supplicant`. The `wpa_supplicant` can have multiple network entries
 configured. The following removes all network entries so that only one is
 configured:
 
-    iex> Nerves.WpaSupplicant.set_network(pid, ssid: "MyNetworkSsid", key_mgmt: :WPA_PSK, psk: "secret")
-    :ok
+```elixir
+iex> Nerves.WpaSupplicant.set_network(pid, ssid: "MyNetworkSsid", key_mgmt: :WPA_PSK, psk: "secret")
+:ok
+```
 
 If the access point is around, the `wpa_supplicant` will eventually connect to
 the network.
 
-    iex> Nerves.WpaSupplicant.status(pid)
-    %{address: "84:3a:4b:11:95:23", bssid: "1c:7e:e5:32:de:32",
-      group_cipher: "TKIP", id: 0, key_mgmt: "WPA2-PSK", mode: "station",
-      pairwise_cipher: "CCMP", ssid: "MyNetworkSsid", wpa_state: "COMPLETED"}
+```elixir
+iex> Nerves.WpaSupplicant.status(pid)
+%{address: "84:3a:4b:11:95:23", bssid: "1c:7e:e5:32:de:32",
+  group_cipher: "TKIP", id: 0, key_mgmt: "WPA2-PSK", mode: "station",
+  pairwise_cipher: "CCMP", ssid: "MyNetworkSsid", wpa_state: "COMPLETED"}
+```
 
 Polling the `wpa_supplicant` for status isn't ideal, so it's possible to
 register to the `Nerves.WpaSupplicant` Registry. The following example shows how to view
 events at the prompt:
 
-    iex> Registry.register(Nerves.WpaSupplicant, "wlan0", [])
-    iex> flush
-    {Nerves.WpaSupplicant, :"CTRL-EVENT-SCAN-STARTED", %{ifname: "wlan0"}}
-    {Nerves.WpaSupplicant, :"CTRL-EVENT-SCAN-RESULTS", %{ifname: "wlan0"}}
+```elixir
+iex> Registry.register(Nerves.WpaSupplicant, "wlan0", [])
+iex> flush
+{Nerves.WpaSupplicant, :"CTRL-EVENT-SCAN-STARTED", %{ifname: "wlan0"}}
+{Nerves.WpaSupplicant, :"CTRL-EVENT-SCAN-RESULTS", %{ifname: "wlan0"}}
+```
 
 ## Low-level messaging
 
@@ -135,11 +152,13 @@ control interface. The response is also parsed and turned into atoms, numbers,
 strings, lists, or maps depending on the command. The string parsing is taken
 care of by this library. Here are some examples:
 
-    iex> Nerves.WpaSupplicant.request(pid, :INTERFACES)
-    ["wlan0"]
+```elixir
+iex> Nerves.WpaSupplicant.request(pid, :INTERFACES)
+["wlan0"]
 
-    iex> Nerves.WpaSupplicant.request(pid, {:GET_NETWORK, 0, :key_mgmt})
-    "WPA-PSK"
+iex> Nerves.WpaSupplicant.request(pid, {:GET_NETWORK, 0, :key_mgmt})
+"WPA-PSK"
+```
 
 ## Useful links
 
