@@ -1,4 +1,8 @@
 # Changelog
+## v0.3.3
+  * Enhancements
+    * Add ability to pass map instead of Keyword list to `setup/2`
+    * Add timeout for scanning for networks
 
 ## v0.3.2
   * Enhancements
