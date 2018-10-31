@@ -150,8 +150,14 @@ defmodule Nerves.WpaSupplicant.Messages do
     resp
     |> String.split("\n", trim: true)
     |> List.foldl(%{}, fn pair, acc ->
-      [key, value] = String.split(pair, "=")
-      Map.put(acc, String.to_atom(key), kv_value(String.trim_trailing(value)))
+      case String.split(pair, "=") do
+        [key, value] ->
+          acc
+          |> Map.put(String.to_atom(key), kv_value(String.trim_trailing(value)))
+
+        _ ->
+          acc
+      end
     end)
   end
 
