@@ -13,6 +13,8 @@
 # limitations under the License.
 
 defmodule Nerves.WpaSupplicant.Messages do
+  require Logger
+
   def encode(cmd) when is_atom(cmd) do
     to_string(cmd)
   end
@@ -156,6 +158,11 @@ defmodule Nerves.WpaSupplicant.Messages do
           |> Map.put(String.to_atom(key), kv_value(String.trim_trailing(value)))
 
         _ ->
+          Logger.debug([
+            "Failed to decode response: ",
+            inspect(resp, limit: :infinity)
+          ])
+
           acc
       end
     end)
