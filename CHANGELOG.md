@@ -1,4 +1,10 @@
 # Changelog
+## v0.4.0
+  * Enhancements
+    * Add ability to add multiple networks at once.
+  * Bug fixes
+    * Fix p2p messages causing crashes.
+
 ## v0.3.3
   * Enhancements
     * Add ability to pass map instead of Keyword list to `setup/2`

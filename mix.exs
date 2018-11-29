@@ -4,7 +4,7 @@ defmodule NervesWpaSupplicant.Mixfile do
   def project do
     [
       app: :nerves_wpa_supplicant,
-      version: "0.3.3",
+      version: "0.4.0",
       elixir: "~> 1.4",
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
@@ -47,7 +47,6 @@ defmodule NervesWpaSupplicant.Mixfile do
         "CHANGELOG.md",
         "Makefile"
       ],
-      maintainers: ["Frank Hunleth", "Justin Schneck"],
       licenses: ["Apache-2.0", "BSD-3c"],
       links: %{
         "GitHub" => "https://github.com/nerves-project/nerves_wpa_supplicant"
