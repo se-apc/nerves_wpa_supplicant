@@ -137,9 +137,10 @@ defmodule Nerves.WpaSupplicant do
 
   def add_network(pid, options) do
     netid = request(pid, :ADD_NETWORK)
+
     with :ok <- set_network_kvlist(pid, netid, options, {:none, :ok}),
          :ok <- request(pid, {:ENABLE_NETWORK, netid}) do
-        {:ok, netid}
+      {:ok, netid}
     else
       error -> error
     end

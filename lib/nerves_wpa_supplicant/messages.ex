@@ -93,12 +93,90 @@ defmodule Nerves.WpaSupplicant.Messages do
     {:"CTRL-EVENT-BSS-REMOVED", String.to_integer(entry_id), bssid}
   end
 
-  def decode_notif(<<"CTRL-EVENT-CONNECTED", _rest::binary>>) do
-    :"CTRL-EVENT-CONNECTED"
+  def decode_notif(<<"CTRL-EVENT-CONNECTED", rest::binary>>) do
+    ["-", "Connection", "to", bssid, status | info] = String.split(rest)
+
+    info =
+      Regex.scan(~r(\w+=[a-zA-Z0-9:\"_]+), Enum.join(info, " "))
+      |> Map.new(fn [str] ->
+        [key, val] = String.split(str, "=")
+        {String.to_atom(key), kv_value(val)}
+      end)
+
+    {:"CTRL-EVENT-CONNECTED", bssid, String.to_atom(status), info}
   end
 
-  def decode_notif(<<"CTRL-EVENT-DISCONNECTED", _rest::binary>>) do
-    :"CTRL-EVENT-DISCONNECTED"
+  def decode_notif(<<"CTRL-EVENT-DISCONNECTED", rest::binary>>) do
+    info =
+      Regex.scan(~r(\w+=[a-zA-Z0-9:\"_]+), rest)
+      |> Map.new(fn [str] ->
+        [key, val] = String.split(str, "=")
+        {String.to_atom(key), kv_value(val)}
+      end)
+
+    {%{bssid: bssid}, info} = Map.split(info, [:bssid])
+    {:"CTRL-EVENT-DISCONNECTED", bssid, info}
+  end
+
+  # "CTRL-EVENT-REGDOM-CHANGE init=CORE"
+  def decode_notif(<<"CTRL-EVENT-REGDOM-CHANGE", rest::binary>>) do
+    info =
+      Regex.scan(~r(\w+=[a-zA-Z0-9:\"_]+), rest)
+      |> Map.new(fn [str] ->
+        [key, val] = String.split(str, "=")
+        {String.to_atom(key), kv_value(val)}
+      end)
+
+    {:"CTRL-EVENT-REGDOM-CHANGE", info}
+  end
+
+  # "CTRL-EVENT-ASSOC-REJECT bssid=00:00:00:00:00:00 status_code=16"
+  def decode_notif(<<"CTRL-EVENT-ASSOC-REJECT", rest::binary>>) do
+    info =
+      Regex.scan(~r(\w+=[a-zA-Z0-9:\"_]+), rest)
+      |> Map.new(fn [str] ->
+        [key, val] = String.split(str, "=")
+        {String.to_atom(key), kv_value(val)}
+      end)
+
+    {%{bssid: bssid}, info} = Map.split(info, [:bssid])
+    {:"CTRL-EVENT-ASSOC-REJECT", bssid, info}
+  end
+
+  # "CTRL-EVENT-SSID-TEMP-DISABLED id=1 ssid=\"FarmbotConnect\" auth_failures=1 duration=10 reason=CONN_FAILED"
+  def decode_notif(<<"CTRL-EVENT-SSID-TEMP-DISABLED", rest::binary>>) do
+    info =
+      Regex.scan(~r(\w+=[a-zA-Z0-9:\"_]+), rest)
+      |> Map.new(fn [str] ->
+        [key, val] = String.split(str, "=")
+        {String.to_atom(key), kv_value(val)}
+      end)
+
+    {:"CTRL-EVENT-SSID-TEMP-DISABLED", info}
+  end
+
+  # "CTRL-EVENT-SUBNET-STATUS-UPDATE status=0"
+  def decode_notif(<<"CTRL-EVENT-SUBNET-STATUS-UPDATE", rest::binary>>) do
+    info =
+      Regex.scan(~r(\w+=[a-zA-Z0-9:\"_]+), rest)
+      |> Map.new(fn [str] ->
+        [key, val] = String.split(str, "=")
+        {String.to_atom(key), kv_value(val)}
+      end)
+
+    {:"CTRL-EVENT-SUBNET-STATUS-UPDATE", info}
+  end
+
+  # CTRL-EVENT-SSID-REENABLED id=1 ssid=\"FarmbotConnect\""
+  def decode_notif(<<"CTRL-EVENT-SSID-REENABLED", rest::binary>>) do
+    info =
+      Regex.scan(~r(\w+=[a-zA-Z0-9:\"_]+), rest)
+      |> Map.new(fn [str] ->
+        [key, val] = String.split(str, "=")
+        {String.to_atom(key), kv_value(val)}
+      end)
+
+    {:"CTRL-EVENT-SSID-REENABLED", info}
   end
 
   def decode_notif(<<"CTRL-EVENT-", _type::binary>> = event) do
@@ -171,6 +249,7 @@ defmodule Nerves.WpaSupplicant.Messages do
   defp kv_value("TRUE"), do: true
   defp kv_value("FALSE"), do: false
   defp kv_value(""), do: nil
+  defp kv_value(<<"\"", _::binary>> = msg), do: String.replace(msg, "\"", "")
   defp kv_value(<<"0x", hex::binary>>), do: kv_value(hex, 16)
   defp kv_value(str), do: kv_value(str, 10)
 

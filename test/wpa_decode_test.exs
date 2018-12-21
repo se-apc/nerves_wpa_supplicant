@@ -231,14 +231,32 @@ defmodule WpaDecodeTest do
   end
 
   test "ctrl-event" do
-    assert Messages.decode_notif("CTRL-EVENT-CONNECTED  ") ==
-             :"CTRL-EVENT-CONNECTED"
+    assert Messages.decode_notif(
+             "CTRL-EVENT-CONNECTED - Connection to ca:21:59:2b:d2:a9 completed [id=1 id_str=]"
+           ) ==
+             {:"CTRL-EVENT-CONNECTED", "ca:21:59:2b:d2:a9", :completed,
+              %{id: 1}}
 
-    assert Messages.decode_notif("CTRL-EVENT-DISCONNECTED\n") ==
-             :"CTRL-EVENT-DISCONNECTED"
+    assert Messages.decode_notif(
+             "CTRL-EVENT-DISCONNECTED bssid=ca:21:59:2b:d2:a9 reason=0 locally_generated=1"
+           ) ==
+             {:"CTRL-EVENT-DISCONNECTED", "ca:21:59:2b:d2:a9",
+              %{reason: 0, locally_generated: 1}}
 
     assert Messages.decode_notif("CTRL-EVENT-TERMINATING") ==
              :"CTRL-EVENT-TERMINATING"
+
+    assert Messages.decode_notif(
+             "CTRL-EVENT-SSID-TEMP-DISABLED id=1 ssid=\"FarmbotConnect\" auth_failures=1 duration=10 reason=CONN_FAILED"
+           ) ==
+             {:"CTRL-EVENT-SSID-TEMP-DISABLED",
+              %{
+                id: 1,
+                ssid: "FarmbotConnect",
+                auth_failures: 1,
+                duration: 10,
+                reason: "CONN_FAILED"
+              }}
 
     assert Messages.decode_notif("CTRL-EVENT-PASSWORD-CHANGED") ==
              :"CTRL-EVENT-PASSWORD-CHANGED"
