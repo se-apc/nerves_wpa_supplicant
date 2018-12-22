@@ -108,32 +108,32 @@ defmodule Nerves.WpaSupplicant.Messages do
   end
 
   def decode_notif(<<"CTRL-EVENT-DISCONNECTED", rest::binary>>) do
-    decode_notif_info(String.to_atom("CTRL-EVENT-DISCONNECTED"), rest)
+    decode_notif_info(:"CTRL-EVENT-DISCONNECTED", rest)
   end
 
   # "CTRL-EVENT-REGDOM-CHANGE init=CORE"
   def decode_notif(<<"CTRL-EVENT-REGDOM-CHANGE", rest::binary>>) do
-    decode_notif_info(String.to_atom("CTRL-EVENT-REGDOM-CHANGE"), rest)
+    decode_notif_info(:"CTRL-EVENT-REGDOM-CHANGE", rest)
   end
 
   # "CTRL-EVENT-ASSOC-REJECT bssid=00:00:00:00:00:00 status_code=16"
   def decode_notif(<<"CTRL-EVENT-ASSOC-REJECT", rest::binary>>) do
-    decode_notif_info(String.to_atom("CTRL-EVENT-ASSOC-REJECT"), rest)
+    decode_notif_info(:"CTRL-EVENT-ASSOC-REJECT", rest)
   end
 
   # "CTRL-EVENT-SSID-TEMP-DISABLED id=1 ssid=\"FarmbotConnect\" auth_failures=1 duration=10 reason=CONN_FAILED"
   def decode_notif(<<"CTRL-EVENT-SSID-TEMP-DISABLED", rest::binary>>) do
-    decode_notif_info(String.to_atom("CTRL-EVENT-SSID-TEMP-DISABLED"), rest)
+    decode_notif_info(:"CTRL-EVENT-SSID-TEMP-DISABLED", rest)
   end
 
   # "CTRL-EVENT-SUBNET-STATUS-UPDATE status=0"
   def decode_notif(<<"CTRL-EVENT-SUBNET-STATUS-UPDATE", rest::binary>>) do
-    decode_notif_info(String.to_atom("CTRL-EVENT-SUBNET-STATUS-UPDATE"), rest)
+    decode_notif_info(:"CTRL-EVENT-SUBNET-STATUS-UPDATE", rest)
   end
 
   # CTRL-EVENT-SSID-REENABLED id=1 ssid=\"FarmbotConnect\""
   def decode_notif(<<"CTRL-EVENT-SSID-REENABLED", rest::binary>>) do
-    decode_notif_info(String.to_atom("CTRL-EVENT-SSID-REENABLED"), rest)
+    decode_notif_info(:"CTRL-EVENT-SSID-REENABLED", rest)
   end
 
   def decode_notif(<<"CTRL-EVENT-", _type::binary>> = event) do
