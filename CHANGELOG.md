@@ -1,4 +1,16 @@
 # Changelog
+## v0.5.0
+  * Enhancements
+    * Expand some notifications to include contextual information. This
+      is a **backwards-incompatible** change to the following message types:
+      * `:"CTRL-EVENT-CONNECTED"`
+      * `:"CTRL-EVENT-DISCONNECTED"`
+      * `:"CTRL-EVENT-REGDOM-CHANGE"`
+      * `:"CTRL-EVENT-ASSOC-REJECT"`
+      * `:"CTRL-EVENT-SSID-TEMP-DISABLED"`
+      * `:"CTRL-EVENT-SUBNET-STATUS-UPDATE"`
+      * `:"CTRL-EVENT-SSID-REENABLED"`
+
 ## v0.4.0
   * Enhancements
     * Add ability to add multiple networks at once.
