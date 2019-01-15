@@ -136,6 +136,42 @@ defmodule Nerves.WpaSupplicant.Messages do
     decode_notif_info(:"CTRL-EVENT-SSID-REENABLED", rest)
   end
 
+  def decode_notif(<<"CTRL-EVENT-EAP-PEER-CERT", rest::binary>>) do
+    info =
+      rest
+      |> String.trim()
+      |> String.split(" ")
+      |> Map.new(fn str ->
+        [key, val] = String.split(str, "=", parts: 2)
+        {String.to_atom(key), kv_value(val)}
+      end)
+
+    {:"CTRL-EVENT-EAP-PEER-CERT", info}
+  end
+
+  def decode_notif(<<"CTRL-EVENT-EAP-STATUS", rest::binary>>) do
+    info =
+      Regex.scan(~r/\w+=(["'])(?:(?=(\\?))\2.)*?\1/, rest)
+      |> Map.new(fn [str | _] ->
+        [key, val] = String.split(str, "=", parts: 2)
+        {String.to_atom(key), kv_value(val)}
+      end)
+
+    {:"CTRL-EVENT-EAP-STATUS", info}
+  end
+
+  def decode_notif(<<"CTRL-EVENT-EAP-FAILURE", rest::binary>>) do
+    {:"CTRL-EVENT-EAP-FAILURE", String.trim(rest)}
+  end
+
+  def decode_notif(<<"CTRL-EVENT-EAP-METHOD", rest::binary>>) do
+    {:"CTRL-EVENT-EAP-METHOD", String.trim(rest)}
+  end
+
+  def decode_notif(<<"CTRL-EVENT-EAP-PROPOSED-METHOD", rest::binary>>) do
+    decode_notif_info(:"CTRL-EVENT-EAP-PROPOSED-METHOD", rest)
+  end
+
   def decode_notif(<<"CTRL-EVENT-", _type::binary>> = event) do
     event |> String.trim_trailing() |> String.to_atom()
   end
@@ -158,9 +194,10 @@ defmodule Nerves.WpaSupplicant.Messages do
 
   defp decode_notif_info(event, rest) do
     info =
-      Regex.scan(~r(\w+=[a-zA-Z0-9:\"_]+), rest)
+      Regex.scan(~r(\w+=[\S*]+), rest)
       |> Map.new(fn [str] ->
-        [key, val] = String.split(str, "=")
+        str = String.replace(str, "\'", "")
+        [key, val] = String.split(str, "=", parts: 2)
         {String.to_atom(key), kv_value(val)}
       end)
 
@@ -220,7 +257,8 @@ defmodule Nerves.WpaSupplicant.Messages do
   defp kv_value("TRUE"), do: true
   defp kv_value("FALSE"), do: false
   defp kv_value(""), do: nil
-  defp kv_value(<<"\"", _::binary>> = msg), do: String.replace(msg, "\"", "")
+  defp kv_value(<<"\"", _::binary>> = msg), do: String.trim(msg, "\"")
+  defp kv_value(<<"\'", _::binary>> = msg), do: String.trim(msg, "\'")
   defp kv_value(<<"0x", hex::binary>>), do: kv_value(hex, 16)
   defp kv_value(str), do: kv_value(str, 10)
 
