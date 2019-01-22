@@ -1,4 +1,16 @@
 # Changelog
+
+## v0.5.1
+  * Enhancements
+    * Enable support for WPA-EAP networks. This adds the following new messages:
+      * `:"CTRL-EVENT-EAP-PEER-CERT"`
+      * `:"CTRL-EVENT-EAP-STATUS"`
+      * `:"CTRL-EVENT-EAP-FAILURE"`
+      * `:"CTRL-EVENT-EAP-METHOD"`
+      * `:"CTRL-EVENT-EAP-PROPOSED-METHOD`
+  * Bug fixes
+    * Fix `:"CTRL-EVENT-EAP-PEER-CERT"` messages causing crashes
+
 ## v0.5.0
   * Enhancements
     * Expand some notifications to include contextual information. This
