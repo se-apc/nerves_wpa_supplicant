@@ -4,7 +4,7 @@ defmodule NervesWpaSupplicant.Mixfile do
   def project do
     [
       app: :nerves_wpa_supplicant,
-      version: "0.5.1",
+      version: "0.5.2",
       elixir: "~> 1.4",
       build_embedded: true,
       start_permanent: Mix.env() == :prod,
