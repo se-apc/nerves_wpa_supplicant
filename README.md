@@ -2,6 +2,15 @@
 [![Build Status](https://travis-ci.org/nerves-project/nerves_wpa_supplicant.svg?branch=master)](https://travis-ci.org/nerves-project/nerves_wpa_supplicant)
 [![Hex version](https://img.shields.io/hexpm/v/nerves_wpa_supplicant.svg "Hex version")](https://hex.pm/packages/nerves_wpa_supplicant)
 
+> IMPORTANT: This package is no longer maintained and should not be used in new
+> projects.
+>
+> See [`VintageNetWiFi`](https://github.com/nerves-networking/vintage_net_wifi)
+> for the new WiFi networking library.
+>
+> Existing projects using this library are encouraged to upgrade to
+> `VintageNet`.
+
 This package enables Elixir applications to query or effect changes on Wi-Fi
 network connections of a host system, by interacting with a [wireless
 supplicant].
