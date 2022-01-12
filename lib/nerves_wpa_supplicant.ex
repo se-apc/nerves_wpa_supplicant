@@ -35,7 +35,9 @@ defmodule Nerves.WpaSupplicant do
   Stop the Nerves.WpaSupplicant control interface
   """
   def stop(pid) do
+    retval = request(pid, :TERMINATE)
     GenServer.stop(pid)
+    Logger.info("request :TERMINATE returned #{inspect retval}")
   end
 
   @doc """
@@ -153,6 +155,14 @@ defmodule Nerves.WpaSupplicant do
   """
   def remove_all_networks(pid) do
     request(pid, {:REMOVE_NETWORK, :all})
+  end
+
+  @doc """
+  Terminates the wpa_supplicant process
+  Returns `:ok` or `{:error, key, reason}` if an error is encountered.
+  """
+  def terminate(pid) do
+    request(pid, {:TERMINATE})
   end
 
   @doc """
