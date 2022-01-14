@@ -31,13 +31,41 @@ defmodule Nerves.WpaSupplicant do
     GenServer.start_link(__MODULE__, {ifname, control_socket_path}, opts)
   end
 
-  @doc """
-  Stop the Nerves.WpaSupplicant control interface
-  """
+  defp wait_for_disconnect(pid, ifname, timeout \\ 3_333) do
+    Logger.info("Waiting for disconnect event for #{ifname}")
+
+    receive do
+      {Nerves.WpaSupplicant, e = {:"CTRL-EVENT-DISCONNECTED", _mac, _map}, %{ifname: ^ifname}} ->
+        Logger.debug("Got disconnect event #{inspect e}")
+        :ok
+
+      other ->
+        Logger.debug("Got event: #{inspect(other)}")
+        :timer.sleep 111
+        wait_for_disconnect(pid, ifname, timeout)
+
+      after
+        timeout ->
+          Logger.warn("Haven't received disconnect control even!")
+          :timeout
+    end
+  end
+
+   @doc """
+   Stop the Nerves.WpaSupplicant control interface
+   """
   def stop(pid) do
+    ifname = ifname(pid)
+
+    {:ok, _} = Registry.register(Nerves.WpaSupplicant, ifname, [])
+
     retval = request(pid, :TERMINATE)
-    GenServer.stop(pid)
-    Logger.info("request :TERMINATE returned #{inspect retval}")
+    wait_for_disconnect(pid, ifname, 3_333)
+
+    :ok = Registry.unregister(Nerves.WpaSupplicant, ifname)
+
+     GenServer.stop(pid)
+     Logger.info("request :TERMINATE returned #{inspect retval}")
   end
 
   @doc """
@@ -296,5 +324,19 @@ defmodule Nerves.WpaSupplicant do
     decoded_response = Messages.decode_resp(command, response)
     GenServer.reply(client, decoded_response)
     {:noreply, state}
+  end
+
+  # terminate/2  handler for the GenServer behaviour. We need to inform subscribers about our  death.
+  def terminate(reason, state) do
+    Logger.warn("Terminating...")
+    Registry.dispatch(Nerves.WpaSupplicant, state.ifname, fn entries ->
+      for {pid, _} <- entries,
+          do:
+            send(
+              pid,
+              {Nerves.WpaSupplicant, {:terminated, pid}, %{ifname: state.ifname}}
+            )
+    end)
+    state
   end
 end
