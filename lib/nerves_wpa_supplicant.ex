@@ -63,9 +63,9 @@ defmodule Nerves.WpaSupplicant do
    Stop the Nerves.WpaSupplicant control interface
    """
   def stop(wpa_pid, supplicant_port \\ nil) do
-    ifname = ifname(wpa_pid)
-
     if is_port(supplicant_port) and is_pid(wpa_pid)  do
+      ifname = ifname(wpa_pid)
+
       Logger.debug("Stopping supplicant #{inspect supplicant_port}...")
       {:ok, _} = Registry.register(Nerves.WpaSupplicant, ifname, [])
 
