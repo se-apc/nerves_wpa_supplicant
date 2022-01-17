@@ -21,17 +21,25 @@ defmodule Nerves.WpaSupplicant do
 
   defstruct port: nil,
             ifname: nil,
+            restart: :transient,
+            control_socket_path: "",
             requests: []
 
   @doc """
   Start and link a Nerves.WpaSupplicant that uses the specified control
   socket.
   """
-  def start_link(ifname, control_socket_path, opts \\ []) do
-    GenServer.start_link(__MODULE__, {ifname, control_socket_path}, opts)
+  def start_link(ifname, control_socket_path, restart \\ :transient, opts \\ []) do
+    GenServer.start_link(__MODULE__, {ifname, control_socket_path, restart}, opts)
+  end
+  def start_link([ifname, control_socket_path, restart, opts]) do
+    start_link(ifname, control_socket_path, restart, opts)
+  end
+  def start_link([ifname, control_socket_path, opts]) do
+    start_link(ifname, control_socket_path, opts)
   end
 
-  defp wait_for_disconnect(pid, ifname, timeout \\ 3_333) do
+  defp wait_for_disconnect(pid, ifname, timeout) do
     Logger.info("Waiting for disconnect event for #{ifname}")
 
     receive do
@@ -54,18 +62,26 @@ defmodule Nerves.WpaSupplicant do
    @doc """
    Stop the Nerves.WpaSupplicant control interface
    """
-  def stop(pid) do
-    ifname = ifname(pid)
+  def stop(wpa_pid, supplicant_port \\ nil) do
+    ifname = ifname(wpa_pid)
 
-    {:ok, _} = Registry.register(Nerves.WpaSupplicant, ifname, [])
+    if is_port(supplicant_port) and is_pid(wpa_pid)  do
+      Logger.debug("Stopping supplicant #{inspect supplicant_port}...")
+      {:ok, _} = Registry.register(Nerves.WpaSupplicant, ifname, [])
 
-    retval = request(pid, :TERMINATE)
-    wait_for_disconnect(pid, ifname, 3_333)
+      retval = request(wpa_pid, :TERMINATE)
+      Logger.debug("request :TERMINATE returned #{inspect retval}")
 
-    :ok = Registry.unregister(Nerves.WpaSupplicant, ifname)
+      wait_for_disconnect(wpa_pid, ifname, 3_333)
 
-     GenServer.stop(pid)
-     Logger.info("request :TERMINATE returned #{inspect retval}")
+      :ok = Registry.unregister(Nerves.WpaSupplicant, ifname)
+    end
+
+
+    if(is_pid(wpa_pid)) do
+     Logger.debug("Stopping wpa #{inspect wpa_pid}...")
+     GenServer.stop(wpa_pid)
+    end
   end
 
   @doc """
@@ -268,18 +284,21 @@ defmodule Nerves.WpaSupplicant do
     end
   end
 
-  def init({ifname, control_socket_path}) do
+  defp open_port(control_socket_path) do
     executable = :code.priv_dir(:nerves_wpa_supplicant) ++ '/wpa_ex'
 
-    port =
       Port.open({:spawn_executable, executable}, [
         {:args, [control_socket_path]},
         {:packet, 2},
         :binary,
         :exit_status
       ])
-
-    {:ok, %Nerves.WpaSupplicant{port: port, ifname: ifname}}
+  end
+  def init({ifname, control_socket_path}) do
+    {:ok, %Nerves.WpaSupplicant{port: open_port(control_socket_path), ifname: ifname, control_socket_path: control_socket_path}}
+  end
+  def init({ifname, control_socket_path, restart}) do
+    {:ok, %Nerves.WpaSupplicant{port: open_port(control_socket_path), ifname: ifname, restart: restart, control_socket_path: control_socket_path}}
   end
 
   def handle_call({:request, command}, from, state) do
@@ -294,11 +313,23 @@ defmodule Nerves.WpaSupplicant do
     {:reply, state.ifname, state}
   end
 
+  def handle_call(unknown, _from, state) do
+    Logger.warn("Unoknown call #{inspect unknown}")
+
+    {:reply, state, state}
+  end
+
   def handle_info({_, {:data, message}}, state) do
     handle_wpa(message, state)
   end
 
-  def handle_info({_, {:exit_status, _}}, state) do
+  def handle_info({_, {:exit_status, 0}}, state) do
+    {:stop, :normal, state}
+  end
+  def handle_info({_, {:exit_status, exit_status}}, state = %{restart: :permanent}) do
+    {:noreply, %{state | port: open_port(state.control_socket_path)}}
+  end
+  def handle_info({_, {:exit_status, exit_status}}, state = %{restart: :transient}) do
     {:stop, :unexpected_exit, state}
   end
 
@@ -328,13 +359,13 @@ defmodule Nerves.WpaSupplicant do
 
   # terminate/2  handler for the GenServer behaviour. We need to inform subscribers about our  death.
   def terminate(reason, state) do
-    Logger.warn("Terminating...")
+    Logger.warn("Terminating... reason: #{inspect reason}")
     Registry.dispatch(Nerves.WpaSupplicant, state.ifname, fn entries ->
       for {pid, _} <- entries,
           do:
             send(
               pid,
-              {Nerves.WpaSupplicant, {:terminated, pid}, %{ifname: state.ifname}}
+              {Nerves.WpaSupplicant, {:terminated, reason}, %{ifname: state.ifname}}
             )
     end)
     state
