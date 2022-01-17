@@ -161,7 +161,7 @@ defmodule WpaDecodeTest do
            1 / 02:00:01:02:03:04 / 000102030405060708090a0b0c0d0e0f / 41362 / 0
            2 / 02:00:01:33:55:77 / 928389281928383b34afb34ba4212345 / 362 / 1
            """) ==
-             String.strip("""
+             String.trim("""
              Index / AA / PMKID / expiration (in seconds) / opportunistic
              1 / 02:00:01:02:03:04 / 000102030405060708090a0b0c0d0e0f / 41362 / 0
              2 / 02:00:01:33:55:77 / 928389281928383b34afb34ba4212345 / 362 / 1
