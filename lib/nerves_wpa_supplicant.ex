@@ -54,7 +54,7 @@ defmodule Nerves.WpaSupplicant do
 
       after
         timeout ->
-          Logger.warn("Haven't received disconnect control even!")
+          Logger.warn("Haven't received disconnect control event!")
           :timeout
     end
   end
