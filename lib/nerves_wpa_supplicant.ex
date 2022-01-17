@@ -206,7 +206,15 @@ defmodule Nerves.WpaSupplicant do
   Returns `:ok` or `{:error, key, reason}` if an error is encountered.
   """
   def terminate(pid) do
-    request(pid, {:TERMINATE})
+    request(pid, :TERMINATE)
+  end
+
+  @doc """
+  Forces wpa_supplicant to re-read its configuration data. It also induces re-authentication as a side effect.
+  Returns `:ok` or `{:error, key, reason}` if an error is encountered.
+  """
+  def reconfigure(pid) do
+    request(pid, :RECONFIGURE)
   end
 
   @doc """
@@ -326,10 +334,10 @@ defmodule Nerves.WpaSupplicant do
   def handle_info({_, {:exit_status, 0}}, state) do
     {:stop, :normal, state}
   end
-  def handle_info({_, {:exit_status, exit_status}}, state = %{restart: :permanent}) do
+  def handle_info({_, {:exit_status, _exit_status}}, state = %{restart: :permanent}) do
     {:noreply, %{state | port: open_port(state.control_socket_path)}}
   end
-  def handle_info({_, {:exit_status, exit_status}}, state = %{restart: :transient}) do
+  def handle_info({_, {:exit_status, _exit_status}}, state = %{restart: :transient}) do
     {:stop, :unexpected_exit, state}
   end
 
