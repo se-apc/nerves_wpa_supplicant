@@ -21,21 +21,67 @@ defmodule Nerves.WpaSupplicant do
 
   defstruct port: nil,
             ifname: nil,
+            restart: :transient,
+            control_socket_path: "",
             requests: []
 
   @doc """
   Start and link a Nerves.WpaSupplicant that uses the specified control
   socket.
   """
-  def start_link(ifname, control_socket_path, opts \\ []) do
-    GenServer.start_link(__MODULE__, {ifname, control_socket_path}, opts)
+  def start_link(ifname, control_socket_path, restart \\ :transient, opts \\ []) do
+    GenServer.start_link(__MODULE__, {ifname, control_socket_path, restart}, opts)
+  end
+  def start_link([ifname, control_socket_path, restart, opts]) do
+    start_link(ifname, control_socket_path, restart, opts)
+  end
+  def start_link([ifname, control_socket_path, opts]) do
+    start_link(ifname, control_socket_path, opts)
   end
 
-  @doc """
-  Stop the Nerves.WpaSupplicant control interface
-  """
-  def stop(pid) do
-    GenServer.stop(pid)
+  defp wait_for_disconnect(pid, ifname, timeout) do
+    Logger.info("Waiting for disconnect event for #{ifname}")
+
+    receive do
+      {Nerves.WpaSupplicant, e = {:"CTRL-EVENT-DISCONNECTED", _mac, _map}, %{ifname: ^ifname}} ->
+        Logger.debug("Got disconnect event #{inspect e}")
+        :ok
+
+      other ->
+        Logger.debug("Got event: #{inspect(other)}")
+        :timer.sleep 111
+        wait_for_disconnect(pid, ifname, timeout)
+
+      after
+        timeout ->
+          Logger.warn("Haven't received disconnect control event!")
+          :timeout
+    end
+  end
+
+   @doc """
+   Stop the Nerves.WpaSupplicant control interface
+   """
+  def stop(wpa_pid, supplicant_port \\ nil) do
+    if is_port(supplicant_port) and is_pid(wpa_pid)  do
+      ifname = ifname(wpa_pid)
+
+      Logger.debug("Stopping supplicant #{inspect supplicant_port}...")
+      {:ok, _} = Registry.register(Nerves.WpaSupplicant, ifname, [])
+
+      retval = request(wpa_pid, :TERMINATE)
+      Logger.debug("request :TERMINATE returned #{inspect retval}")
+
+      wait_for_disconnect(wpa_pid, ifname, 3_333)
+
+      :ok = Registry.unregister(Nerves.WpaSupplicant, ifname)
+    end
+
+
+    if(is_pid(wpa_pid)) do
+     Logger.debug("Stopping wpa #{inspect wpa_pid}...")
+     GenServer.stop(wpa_pid)
+    end
   end
 
   @doc """
@@ -156,6 +202,22 @@ defmodule Nerves.WpaSupplicant do
   end
 
   @doc """
+  Terminates the wpa_supplicant process
+  Returns `:ok` or `{:error, key, reason}` if an error is encountered.
+  """
+  def terminate(pid) do
+    request(pid, :TERMINATE)
+  end
+
+  @doc """
+  Forces wpa_supplicant to re-read its configuration data. It also induces re-authentication as a side effect.
+  Returns `:ok` or `{:error, key, reason}` if an error is encountered.
+  """
+  def reconfigure(pid) do
+    request(pid, :RECONFIGURE)
+  end
+
+  @doc """
   According to the docs, this forces a reassociation to the current access
   point, but in practice it causes the supplicant to go through the network list
   in priority order, connecting to the highest priority access point available.
@@ -230,18 +292,21 @@ defmodule Nerves.WpaSupplicant do
     end
   end
 
-  def init({ifname, control_socket_path}) do
+  defp open_port(control_socket_path) do
     executable = :code.priv_dir(:nerves_wpa_supplicant) ++ '/wpa_ex'
 
-    port =
       Port.open({:spawn_executable, executable}, [
         {:args, [control_socket_path]},
         {:packet, 2},
         :binary,
         :exit_status
       ])
-
-    {:ok, %Nerves.WpaSupplicant{port: port, ifname: ifname}}
+  end
+  def init({ifname, control_socket_path}) do
+    {:ok, %Nerves.WpaSupplicant{port: open_port(control_socket_path), ifname: ifname, control_socket_path: control_socket_path}}
+  end
+  def init({ifname, control_socket_path, restart}) do
+    {:ok, %Nerves.WpaSupplicant{port: open_port(control_socket_path), ifname: ifname, restart: restart, control_socket_path: control_socket_path}}
   end
 
   def handle_call({:request, command}, from, state) do
@@ -256,11 +321,23 @@ defmodule Nerves.WpaSupplicant do
     {:reply, state.ifname, state}
   end
 
+  def handle_call(unknown, _from, state) do
+    Logger.warn("Unoknown call #{inspect unknown}")
+
+    {:reply, state, state}
+  end
+
   def handle_info({_, {:data, message}}, state) do
     handle_wpa(message, state)
   end
 
-  def handle_info({_, {:exit_status, _}}, state) do
+  def handle_info({_, {:exit_status, 0}}, state) do
+    {:stop, :normal, state}
+  end
+  def handle_info({_, {:exit_status, _exit_status}}, state = %{restart: :permanent}) do
+    {:noreply, %{state | port: open_port(state.control_socket_path)}}
+  end
+  def handle_info({_, {:exit_status, _exit_status}}, state = %{restart: :transient}) do
     {:stop, :unexpected_exit, state}
   end
 
@@ -286,5 +363,19 @@ defmodule Nerves.WpaSupplicant do
     decoded_response = Messages.decode_resp(command, response)
     GenServer.reply(client, decoded_response)
     {:noreply, state}
+  end
+
+  # terminate/2  handler for the GenServer behaviour. We need to inform subscribers about our  death.
+  def terminate(reason, state) do
+    Logger.warn("Terminating... reason: #{inspect reason}")
+    Registry.dispatch(Nerves.WpaSupplicant, state.ifname, fn entries ->
+      for {pid, _} <- entries,
+          do:
+            send(
+              pid,
+              {Nerves.WpaSupplicant, {:terminated, reason}, %{ifname: state.ifname}}
+            )
+    end)
+    state
   end
 end

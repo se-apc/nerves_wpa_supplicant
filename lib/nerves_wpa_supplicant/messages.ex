@@ -221,6 +221,8 @@ defmodule Nerves.WpaSupplicant.Messages do
   defp tresp(:PING, "PONG"), do: :PONG
   defp tresp(:MIB, resp), do: kv_resp(resp)
   defp tresp(:STATUS, resp), do: kv_resp(resp)
+  defp tresp(:TERMINATE, resp), do: kv_resp(resp)
+  defp tresp(:RECONFIGURE, resp), do: kv_resp(resp)
   defp tresp(:"STATUS-VERBOSE", resp), do: kv_resp(resp)
   defp tresp({:BSS, _}, ""), do: nil
   defp tresp({:BSS, _}, resp), do: kv_resp(resp)
@@ -234,6 +236,10 @@ defmodule Nerves.WpaSupplicant.Messages do
 
   defp tresp(_, resp), do: resp
 
+  defp kv_resp(resp = "OK") do
+    Logger.debug("Decode response #{resp}")
+    :ok
+  end
   defp kv_resp(resp) do
     resp
     |> String.split("\n", trim: true)
