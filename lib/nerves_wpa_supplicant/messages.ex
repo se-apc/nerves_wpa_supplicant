@@ -136,11 +136,6 @@ defmodule Nerves.WpaSupplicant.Messages do
     decode_notif_info(:"CTRL-EVENT-SSID-REENABLED", rest)
   end
 
-  #--- a/lib/nerves_wpa_supplicant/messages.ex
-+++ b/lib/nerves_wpa_supplicant/messages.ex
-@@ -137,11 +137,15 @@ defmodule Nerves.WpaSupplicant.Messages do
-   end
-
   def decode_notif(<<"CTRL-EVENT-EAP-PEER-CERT", rest::binary>>) do
     # scan the event message for items like subject='....'
     regex = ~r/\w+='.*?[^\\]'/
