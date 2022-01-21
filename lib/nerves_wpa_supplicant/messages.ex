@@ -140,7 +140,7 @@ defmodule Nerves.WpaSupplicant.Messages do
     # scan the event message for items like subject='....'
     regex = ~r/\w+='.*?[^\\]'/
     scan1 = Regex.scan(regex, rest)
-    # get a rid of  already scanned items
+    # get a rid of already scanned items
     rest = Regex.replace(regex, rest, "", [:global]) 
     # and scan again
     scan2 = Regex.scan(~r/\w+=[\w+\d+]+/, rest)
