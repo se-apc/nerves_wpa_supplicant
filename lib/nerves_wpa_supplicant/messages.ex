@@ -140,24 +140,6 @@ defmodule Nerves.WpaSupplicant.Messages do
 +++ b/lib/nerves_wpa_supplicant/messages.ex
 @@ -137,11 +137,15 @@ defmodule Nerves.WpaSupplicant.Messages do
    end
- 
-   def decode_notif(<<"CTRL-EVENT-EAP-PEER-CERT", rest::binary>>) do
-+    # scan the event message for items like subject='....'
-+    regex = ~r/\w+='.*?[^\\]'/
-+    scan1 = Regex.scan(regex, rest)
-+    # get a rid of  already scanned items
-+    rest = Regex.replace(regex, rest, "", [:global]) 
-+    # and scan again
-+    scan2 = Regex.scan(~r/\w+=[\w+\d+]+/, rest)
-     info =
--      rest
--      |> String.trim()
--      |> String.split(" ")
--      |> Map.new(fn str ->
-+      Map.new(scan1 ++ scan2, fn [str | _] ->
-         [key, val] = String.split(str, "=", parts: 2)
-         {String.to_atom(key), kv_value(val)}
-       end)
 
   def decode_notif(<<"CTRL-EVENT-EAP-PEER-CERT", rest::binary>>) do
     # scan the event message for items like subject='....'
