@@ -78,6 +78,10 @@ defmodule Nerves.WpaSupplicant.Messages do
   @doc """
   Decode notifications from the wpa_supplicant
   """
+  def decode_notif(<<"CTRL-REQ-PASSPHRASE-", rest::binary>>) do
+    [net_id, text] = String.split(rest, ":", parts: 2, trim: true)
+    {:"CTRL-REQ-PASSPHRASE", String.to_integer(net_id), text}
+  end
   def decode_notif(<<"CTRL-REQ-", rest::binary>>) do
     [field, net_id, text] = String.split(rest, "-", parts: 3, trim: true)
     {String.to_atom("CTRL-REQ-" <> field), String.to_integer(net_id), text}
