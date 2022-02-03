@@ -115,6 +115,11 @@ defmodule Nerves.WpaSupplicant.Messages do
     decode_notif_info(:"CTRL-EVENT-DISCONNECTED", rest)
   end
 
+  #:"CTRL-EVENT-EAP-TLS-CERT-ERROR reason=4 depth=0 subject='' err='certificate has expired'", ""}, %{ifname: "eth0"}}
+  def decode_notif(<<"CTRL-EVENT-EAP-TLS-CERT-ERROR", rest::binary>>) do
+    {:"CTRL-EVENT-EAP-TLS-CERT-ERROR", decode_cert_notif(rest)}
+  end
+
   # "CTRL-EVENT-REGDOM-CHANGE init=CORE"
   def decode_notif(<<"CTRL-EVENT-REGDOM-CHANGE", rest::binary>>) do
     decode_notif_info(:"CTRL-EVENT-REGDOM-CHANGE", rest)
@@ -142,19 +147,22 @@ defmodule Nerves.WpaSupplicant.Messages do
 
   def decode_notif(<<"CTRL-EVENT-EAP-PEER-CERT", rest::binary>>) do
     # scan the event message for items like subject='....'
-    regex = ~r/\w+='.*?[^\\]'/
+
+    {:"CTRL-EVENT-EAP-PEER-CERT", decode_cert_notif(rest)}
+  end
+
+  defp decode_cert_notif(rest) do
+    #regex = ~r/\w+='.*?[^\\]'/
+    regex = ~r/\w+='.*?'/
     scan1 = Regex.scan(regex, rest)
     # get a rid of already scanned items
-    rest = Regex.replace(regex, rest, "", [:global]) 
+    rest = Regex.replace(regex, rest, "", [:global])
     # and scan again
     scan2 = Regex.scan(~r/\w+=[\w+\d+]+/, rest)
-    info =
-      Map.new(scan1 ++ scan2, fn [str | _] ->
-        [key, val] = String.split(str, "=", parts: 2)
-        {String.to_atom(key), kv_value(val)}
-      end)
-
-    {:"CTRL-EVENT-EAP-PEER-CERT", info}
+    Map.new(scan1 ++ scan2, fn [str | _] ->
+      [key, val] = String.split(str, "=", parts: 2)
+      {String.to_atom(key), kv_value(val)}
+    end)
   end
 
   def decode_notif(<<"CTRL-EVENT-EAP-STATUS", rest::binary>>) do
@@ -170,6 +178,14 @@ defmodule Nerves.WpaSupplicant.Messages do
 
   def decode_notif(<<"CTRL-EVENT-EAP-FAILURE", rest::binary>>) do
     {:"CTRL-EVENT-EAP-FAILURE", String.trim(rest)}
+  end
+
+  def decode_notif(<<"CTRL-EVENT-EAP-SUCCESS", rest::binary>>) do
+    {:"CTRL-EVENT-EAP-SUCCESS", String.trim(rest)}
+  end
+
+  def decode_notif(<<"CTRL-EVENT-EAP-STARTED", rest::binary>>) do
+    {:"CTRL-EVENT-EAP-STARTED", String.trim(rest)}
   end
 
   def decode_notif(<<"CTRL-EVENT-EAP-METHOD", rest::binary>>) do
