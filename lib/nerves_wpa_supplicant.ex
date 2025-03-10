@@ -54,7 +54,7 @@ defmodule Nerves.WpaSupplicant do
 
       after
         timeout ->
-          Logger.warn("Haven't received disconnect control event!")
+          Logger.warning("Haven't received disconnect control event!")
           :timeout
     end
   end
@@ -322,7 +322,7 @@ defmodule Nerves.WpaSupplicant do
   end
 
   def handle_call(unknown, _from, state) do
-    Logger.warn("Unoknown call #{inspect unknown}")
+    Logger.warning("Unoknown call #{inspect unknown}")
 
     {:reply, state, state}
   end
@@ -367,7 +367,7 @@ defmodule Nerves.WpaSupplicant do
 
   # terminate/2  handler for the GenServer behaviour. We need to inform subscribers about our  death.
   def terminate(reason, state) do
-    Logger.warn("Terminating... reason: #{inspect reason}")
+    Logger.warning("Terminating... reason: #{inspect reason}")
     Registry.dispatch(Nerves.WpaSupplicant, state.ifname, fn entries ->
       for {pid, _} <- entries,
           do:
