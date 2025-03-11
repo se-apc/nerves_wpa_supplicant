@@ -151,20 +151,6 @@ defmodule Nerves.WpaSupplicant.Messages do
     {:"CTRL-EVENT-EAP-PEER-CERT", decode_cert_notif(rest)}
   end
 
-  defp decode_cert_notif(rest) do
-    #regex = ~r/\w+='.*?[^\\]'/
-    regex = ~r/\w+='.*?'/
-    scan1 = Regex.scan(regex, rest)
-    # get a rid of already scanned items
-    rest = Regex.replace(regex, rest, "", [:global])
-    # and scan again
-    scan2 = Regex.scan(~r/\w+=[\w+\d+]+/, rest)
-    Map.new(scan1 ++ scan2, fn [str | _] ->
-      [key, val] = String.split(str, "=", parts: 2)
-      {String.to_atom(key), kv_value(val)}
-    end)
-  end
-
   def decode_notif(<<"CTRL-EVENT-EAP-STATUS", rest::binary>>) do
     info =
       Regex.scan(~r/\w+=(["'])(?:(?=(\\?))\2.)*?\1/, rest)
@@ -214,6 +200,20 @@ defmodule Nerves.WpaSupplicant.Messages do
 
   def decode_notif(string) do
     {:INFO, String.trim_trailing(string)}
+  end
+
+  defp decode_cert_notif(rest) do
+    #regex = ~r/\w+='.*?[^\\]'/
+    regex = ~r/\w+='.*?'/
+    scan1 = Regex.scan(regex, rest)
+    # get a rid of already scanned items
+    rest = Regex.replace(regex, rest, "", [:global])
+    # and scan again
+    scan2 = Regex.scan(~r/\w+=[\w+\d+]+/, rest)
+    Map.new(scan1 ++ scan2, fn [str | _] ->
+      [key, val] = String.split(str, "=", parts: 2)
+      {String.to_atom(key), kv_value(val)}
+    end)
   end
 
   defp decode_notif_info(event, rest) do
